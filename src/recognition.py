@@ -20,9 +20,15 @@ def recognition(thresh):
     # 对圆形轮廓进行分类
     cate1, center1, cate2, center2, cate3, center3 = cateCircles(circle_cnts, thresh)
 
+    if len(center2)<1 or len(center3)<1 or len(center1)<3:
+        print("没有检测到标记点！")
+        return
 
     # 从非模板点中将定位圆的信息分离出来,分离后cate3、center3内值包含编码圆和方向圆的信息
     locate_circle, locate_center = getLocateCircles(cate3, center3)
+    if len(locate_center)<1:
+        print("没有检测到定位圆")
+        return
 
     # 根据设计图的特征，假设模板点坐标如下：
     src_n0 = [50, 50]
