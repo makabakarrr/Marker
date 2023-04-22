@@ -10,16 +10,12 @@ from collections import deque
 
 # 根据梯度方向获取下一个边缘点
 def get_next_edge_point(point, angle):
-
-    angle += 90
-    # angle -= 90
-    # if angle<90 or angle>270:
-    #     angle -= 90
-    # else:
-    #     angle += 90
-    k = np.array([np.cos(np.radians(angle)), np.sin(np.radians(angle))])
-    next_point = np.round(np.array(point) + k).astype(int)
-    return [next_point[0], next_point[1]]
+    k1 = np.array([np.cos(np.radians(angle + 90)), np.sin(np.radians(angle + 90))])
+    k2 = np.array([np.cos(np.radians(angle - 90)), np.sin(np.radians(angle - 90))])
+    next_point1 = np.round(np.array(point) + k1).astype(int)
+    next_point2 = np.round(np.array(point) + k2).astype(int)
+    print(point, next_point1, next_point2)
+    return [next_point1, next_point2]
 
 def get_next_edge_point1(point, gradient_angle):
     x, y = point
@@ -51,14 +47,13 @@ def connectEdges(que, image):
         point = que.popleft()  # 取出端点
         center_x, center_y = point
         cv2.circle(mask_canvas, (center_x, center_y), 1, (0,0,255),-1)
-        next_point = get_next_edge_point(point, grad_angle[point[1]][point[0]])
+        next_points = get_next_edge_point(point, grad_angle[point[1]][point[0]])
+        x1, y1 = next_points[1]
+        next_point = next_points[0] if image[y1][x1] > 0 else next_points[1]
         x, y = next_point
-        cv2.circle(mask_canvas, (x, y), 1, (255, 0, 0), -1)
         if point != next_point and sobel_thresh[y][x] == 255 and image[y][x] == 0:
-            # refine[y][x] = 255
             image[y][x] = 255
             que.append(next_point)
-    # cv2.imwrite("./images/0411-pm/cal-edges/" + imgName + "-end-points.bmp", mask_canvas)
 
 
 
@@ -99,34 +94,24 @@ contours, hierarchy = cv2.findContours(refine, cv2.RETR_TREE, cv2.CHAIN_APPROX_S
 mask1 = np.zeros(edges.shape[:2], dtype=np.uint8)
 mask2 = np.zeros(edges.shape[:2], dtype=np.uint8)
 mask_canvas = cv2.cvtColor(refine, cv2.COLOR_GRAY2BGR)
-mask_canvas1 = cv2.cvtColor(refine, cv2.COLOR_GRAY2BGR)
+mask_canvas1 = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+mask_canvas2 = cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
 
 for index in range(len(contours)):
     cnt = contours[index]
     length = cv2.arcLength(cnt, False)
-    if length > 30:
-        (x, y), (a, b), angle = cv2.fitEllipse(cnt)
-        x, y = int(x), int(y)
-        area = cv2.contourArea(cnt, False)
-        k = 4 * math.pi * area / (length ** 2)
-        if abs(k - 1) < 0.3 or length > 1.8 * math.pi * a or (a>50 and length>1.2*math.pi*a):
-            que = detectEndPoints(cnt)  # 检测该轮廓中的端点
-            cv2.drawContours(mask1, [cnt], -1, (255, 255, 255), 1)
-            # cv2.drawContours(mask_canvas1, [cnt], -1, (0, 0, 255), 1)
-            if len(que)>=2:
-                connectEdges(que, mask1)
-            # connectEdges(que, mask1)
-            # if abs(a-b)<5:
-            #     cv2.ellipse(mask_canvas, (int(x), int(y)), (int(a / 2), int(b / 2)), angle, 0, 360, (0, 0, 255), 1)
-            #     cv2.drawContours(mask1, [cnt], -1, (255,255,255), 1)
-            # else:
-            #     que = detectEndPoints(cnt)  # 检测该轮廓中的端点
-            #     cv2.drawContours(mask1, [cnt], -1, (255, 255, 255), 1)
-            #     connectEdges(que, mask1)
+    area = cv2.contourArea(cnt, False)
+    cv2.drawContours(mask1, [cnt], -1, (255, 255, 255), 1)
+    cv2.drawContours(mask_canvas1, [cnt], -1, (0, 0, 255), 1)
+    if area < 5:  # 轮廓未闭合
+        cv2.drawContours(mask_canvas2, [cnt], -1, (0, 0, 255), 1)
+        que = detectEndPoints(cnt)  # 检测轮廓端点
+        if len(que) >= 2:
+            connectEdges(que, mask1)
 
-cv2.imwrite("./images/process/0411-pm/cal-edges/"+imgName+"-mask1.bmp", mask1)
-# cv2.imwrite("./images/process/0411-pm/cal-edges/"+imgName+"-mask-ellipse.bmp", mask_canvas)
-# cv2.imwrite("./images/process/0411-pm/cal-edges/"+imgName+"-filter-contours.bmp", mask_canvas1)
+cv2.imwrite("./images/process/0411-pm/cal-edges/"+imgName+"-close-contours.bmp", mask1)
+cv2.imwrite("./images/process/0411-pm/cal-edges/"+imgName+"-open-contours.bmp", mask_canvas2)
+cv2.imwrite("./images/process/0411-pm/cal-edges/"+imgName+"-contours.bmp", mask_canvas1)
 
 # d_knernal = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
 # e_knernal = cv2.getStructuringElement(cv2.MORPH_CROSS, (2,2))
@@ -157,6 +142,9 @@ for k, v in contour_dict.items():
         cv2.drawContours(mask1, v, -1, colors_list[((k // 2) % 2)], -1)
 # cv2.imwrite("./images/process/0411-pm/cal-edges/" + imgName + "-mask1-fill.bmp", mask1)
 ret, thresh = cv2.threshold(mask1 + mask2, 0, 255, cv2.THRESH_OTSU)
+
+kernal = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
+cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernal, thresh)
 #
 cv2.imwrite("./images/process/0411-pm/cal-edges/" + imgName + "-res.bmp", thresh)
 #
