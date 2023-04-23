@@ -77,7 +77,7 @@ sobely = cv2.Sobel(blurred1, cv2.CV_64F, 0, 1, ksize=3)
 grad_mag, grad_angle = cv2.cartToPolar(sobelx, sobely, angleInDegrees=True)
 grad_mag = cv2.normalize(grad_mag, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8UC1)
 ret, sobel_thresh = cv2.threshold(grad_mag, 20,255, cv2.THRESH_BINARY)
-# cv2.imwrite("./images/process/0411-pm/cal-edges/"+imgName+'-grad_mag.bmp', grad_mag)
+cv2.imwrite("./images/process/0411-pm/cal-edges/"+imgName+'-grad_mag.bmp', grad_mag)
 # cv2.imwrite("./images/process/0411-pm/cal-edges/"+imgName+'-grad_thresh.bmp', sobel_thresh)
 
 edges = cv2.Canny(blurred1, 50, 150)
