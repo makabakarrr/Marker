@@ -59,6 +59,10 @@ def recognition(thresh):
         ## 2 小数部分的解码
         # a 坐标转换
         transform_band_points = cvtCodePoints(bandCenters, M)
+        for index in range(0, len(transform_band_points)):
+            x, y = transform_band_points[index]
+            cv2.putText(drawCircle, str(index), (int(x), int(y)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,0,0), 1)
+        showPic("circular", drawCircle)
         # b 解码
         dec_value = getCodeVal(thresh, transform_band_points)
 

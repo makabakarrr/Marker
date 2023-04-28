@@ -79,17 +79,47 @@ def region_growing(img, seed):
     return mask[1:-1, 1:-1]
 
 
-imgName = "1000/marker_03-1"
+def unsharpMask(img, sigma, amount, thresh):
+    """
+    图像锐化:  增强图像边缘信息，计算公式：Y = X+λZ  X为源图像，Z为校正因子，此处为高通滤波后的图像，λ为缩放因子
+    :param img: 源图像
+    :param radius: 高斯内核
+    :param amount: λ
+    :param thresh:  阈值
+    :return:
+    """
+    lImg = cv2.GaussianBlur(img, (0,0), sigma)
+    hImg = cv2.subtract(img, lImg)
 
-img = cv2.imread('../images/process/marker/'+imgName+'.bmp', 0)
+    mask = hImg > thresh
+    newVal = img + mask*amount*hImg/100
+    newImg = np.clip(newVal, 0, 255)
+    newImg = newImg.astype(np.uint8)
+    # h, w = img.shape
+    # for i in range(0, h):
+    #     for j in range(0, w):
+    #         val = hImg[i][j]
+    #         if  val> thresh:
+    #             newVal = img[i][j] + amount*val/100
+    #             img[i][j] = 0 if newVal < 0 else (255 if newVal > 255 else newVal)
+    return newImg
+
+
+
+
+
+imgName = "marker_7"
+
+img = cv2.imread('../images/process/0428/'+imgName+'.png', 0)
 ## 图像增强
 clahe = cv2.createCLAHE(clipLimit=1.5, tileGridSize=(32, 32))
 enhance = clahe.apply(img)
-# cv2.imwrite("./images/process/0411-pm/cal-edges/" + imgName + "-enhance.bmp", enhance)
+cv2.imwrite("../images/process/0428/process/" + imgName + "-enhance.bmp", enhance)
 
-blurred = cv2.GaussianBlur(enhance, (0, 0), 1)
-usm = cv2.addWeighted(enhance, 1.8, blurred, -0.3, 0)
-# cv2.imwrite("./images/process/0411-pm/cal-edges/" + imgName + "-usm.bmp", usm)
+blurred = cv2.GaussianBlur(enhance, (0, 0), 10)
+# usm = cv2.addWeighted(enhance, 1.8, blurred, -0.3, 0)
+usm = unsharpMask(enhance, 10, 60, 0)
+cv2.imwrite("../images/process/0428/process/" + imgName + "-usm.bmp", usm)
 blurred1 = cv2.GaussianBlur(usm, (0, 0), 1)
 
 sobelx = cv2.Sobel(blurred1, cv2.CV_64F, 1, 0, ksize=3)
@@ -97,17 +127,17 @@ sobely = cv2.Sobel(blurred1, cv2.CV_64F, 0, 1, ksize=3)
 # # 计算梯度幅值和方向
 grad_mag, grad_angle = cv2.cartToPolar(sobelx, sobely, angleInDegrees=True)
 grad_mag = cv2.normalize(grad_mag, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8UC1)
-_, sobel_thresh = cv2.threshold(grad_mag, 20,255, cv2.THRESH_BINARY)
-cv2.imwrite("../images/process/marker/process/"+imgName+'-grad_mag.bmp', grad_mag)
-cv2.imwrite("./images/process/marker/process/"+imgName+'-grad_thresh.bmp', sobel_thresh)
+cv2.imwrite("../images/process/0428/process/"+imgName+'-grad_mag.bmp', grad_mag)
+_, sobel_thresh = cv2.threshold(grad_mag, 25,255, cv2.THRESH_BINARY)
+cv2.imwrite("../images/process/0428/process/"+imgName+'-grad_thresh.bmp', sobel_thresh)
 
 edges = cv2.Canny(blurred1, 50, 150)
-cv2.imwrite("../images/process/marker/process/"+imgName+"-edges1.bmp", edges)
+cv2.imwrite("../images/process/0428/process/"+imgName+"-edges.bmp", edges)
 
 edges[edges==255] = 1
 skeleton0 = morphology.skeletonize(edges)
 refine = skeleton0.astype(np.uint8)*255
-cv2.imwrite("../images/process/marker/process/"+imgName+"-refine.bmp", refine)
+cv2.imwrite("../images/process/0428/process/"+imgName+"-refine.bmp", refine)
 
 circleCnts, _ = cv2.findContours(refine, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)  # cv2.RETR_TREE
 circularCnts, _ = cv2.findContours(sobel_thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)  # cv2.RETR_TREE
@@ -123,25 +153,16 @@ mask_canvas2 = cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
 for index in range(len(circleCnts)):
     cnt = circleCnts[index]
     length = cv2.arcLength(cnt, False)
-    area = cv2.contourArea(cnt, False)
-    (x,y), (a,b), angle = cv2.fitEllipse(cnt)
-    if area>5 or length>1.6*math.pi*a:  # 筛选圆形边缘（包含闭合的和断开的）
-        cv2.drawContours(mask1, [cnt], -1, (255,255,255), 1)
-        que = detectEndPoints(cnt)  # 对断开的边缘进行连接
-        if len(que) >= 2:
-            connectEdges(que, mask1)
+    if length > 50: # 过滤掉长度不够的轮廓
+        area = cv2.contourArea(cnt, False)
+        (x,y), (a,b), angle = cv2.fitEllipse(cnt)
+        if (area<10 and length>1.6*math.pi*a) or (area>10 and abs(4 * math.pi * area / ((math.pi*a) ** 2)-1)<0.1):  # 筛选圆形边缘（包含闭合的和断开的）
+            cv2.drawContours(mask1, [cnt], -1, (255,255,255), 1)
+            que = detectEndPoints(cnt)  # 检测端点
+            if len(que) >= 2:
+                connectEdges(que, mask1)
+cv2.imwrite("../images/process/0428/process/"+imgName+"-circle.bmp", mask1)
 
-for c in circularCnts:
-    area = cv2.contourArea(c, False)
-    if area > 400:
-        (x,y), (a,b), _ = cv2.fitEllipse(c)
-        print(a, b, abs(a-b))
-        if abs(a-b)>10 and 30<b<400:    # 筛选圆环带边缘
-            cv2.drawContours(mask1, [c], -1, (255,255, 255), -1)
-
-#
-cv2.imwrite("../images/process/marker/process/"+imgName+"-close-contours.bmp", mask1)
-# cv2.imwrite("../images/process/marker/process/"+imgName+"-open-contours.bmp", mask_canvas2)
 # cv2.imwrite("../images/process/marker/process/"+imgName+"-contours.bmp", mask_canvas1)
 #
 # # d_knernal = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
@@ -151,34 +172,55 @@ cv2.imwrite("../images/process/marker/process/"+imgName+"-close-contours.bmp", m
 # # cv2.imwrite("./images/0411-pm/cal-edges/"+imgName+"-mask1-connect.bmp", mask1)
 #
 #
-# contours_mask, hierarchy_mask = cv2.findContours(mask1, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)  # cv2.RETR_TREE
+contours_mask, hierarchy_mask = cv2.findContours(mask1, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)  # cv2.RETR_TREE
 # # # 将轮廓按照层级进行分类
-# contour_dict = {}
-# for i, c in enumerate(contours_mask):
-#     level = 0
-#     next_index = hierarchy_mask[0][i][3]
-#     while next_index != -1:
-#         level += 1
-#         next_index = hierarchy_mask[0][next_index][3]
+contour_dict = {}
+for i, c in enumerate(contours_mask):
+    level = 0
+    next_index = hierarchy_mask[0][i][3]
+    while next_index != -1:
+        level += 1
+        next_index = hierarchy_mask[0][next_index][3]
+
+    if level not in contour_dict:
+        contour_dict[level] = [c]
+    else:
+        contour_dict[level].append(c)
 #
-#     if level not in contour_dict:
-#         contour_dict[level] = [c]
-#     else:
-#         contour_dict[level].append(c)
-# #
-# colors_list = [(255, 255, 255), (0, 0, 0)]
-# for k, v in contour_dict.items():
-#     # 一条闭合的曲线有两个轮廓
-#     if k%2:
-#         cv2.drawContours(mask1, v, -1, colors_list[((k // 2) % 2)], -1)
-# # cv2.imwrite("./images/process/0411-pm/cal-edges/" + imgName + "-mask1-fill.bmp", mask1)
-# ret, thresh = cv2.threshold(mask1 + mask2, 0, 255, cv2.THRESH_OTSU)
+colors_list = [(255, 255, 255), (0, 0, 0)]
+for k, v in contour_dict.items():
+    # 一条闭合的曲线有两个轮廓
+    if k%2:
+        cv2.drawContours(mask1, v, -1, colors_list[((k // 2) % 2)], -1)
+# cv2.imwrite("./images/process/0411-pm/cal-edges/" + imgName + "-mask1-fill.bmp", mask1)
+
+for i in range(0, len(circularCnts)):
+    c = circularCnts[i]
+    area = cv2.contourArea(c, False)
+    length = cv2.arcLength(c, False)
+    if area > 400:
+        cv2.drawContours(mask_canvas2, [c], -1, (0,255,0), 1)
+        (x,y), (a,b), angle = cv2.fitEllipse(c)
+        k = 4 * math.pi * area / ((math.pi*a) ** 2)
+        print(i, area, length, a, b, abs(a-b), abs(k-1))
+        cv2.putText(mask_canvas2, str(i), (int(x), int(y)), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255,0,0), 1)
+        cv2.ellipse(mask_canvas2, (int(x), int(y)), (int(a/2), int(b/2)), angle,0, 360, (0,0,255), 1)
+
+        # if (abs(a-b)>10 and max(a,b)<900) or min(a,b)>100:    # 筛选圆环带边缘
+        if max(a,b)<500 and min(a,b)>20 and (abs(k-1)>0.2) or 10<abs(a-b)<100:
+            cv2.drawContours(mask2, [c], -1, (255,255, 255), -1)
+
+cv2.imwrite("../images/process/0428/process/"+imgName+"-circular.bmp", mask2)
+cv2.imwrite("../images/process/0428/process/"+imgName+"-ellipse.bmp", mask_canvas2)
+
+
+ret, thresh = cv2.threshold(mask1+mask2, 0, 255, cv2.THRESH_OTSU)
 #
 # kernal = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
 # cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernal, thresh)
 # #
-# cv2.imwrite("../images/process/marker/process/" + imgName + "-res.bmp", thresh)
+cv2.imwrite("../images/process/0428/process/" + imgName + "-res.bmp", thresh)
 # #
-# recognition(thresh)
+recognition(thresh)
 
 

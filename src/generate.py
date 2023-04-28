@@ -83,7 +83,7 @@ class Marker:
             str_right = self.distance[a1 + 1:]
             if str_left.isdigit() and str_right.isdigit():
                 int_left = int(str_left)
-                int_right = int(str_right)
+                int_right = int(str_right.ljust(3,'0')) # 右侧补零并转为整型  ‘23’ → 230，‘07’ → 70
                 if int_left > 999:
                     raise Exception("Data format error: the integer must be 0 to 3 digits!")
                 elif int_right > 999:
@@ -189,22 +189,13 @@ class Marker:
             cv2.ellipse(image, (self.locate_x, self.locate_y), (int(3.5 * self.diameter), int(3.5 * self.diameter)), 0, 36 * index_dec, 36 * (index_dec + 1), (255, 255, 255),
                         -1)
             index_dec = decimal.find('1', index_dec + 1)
-
         cv2.circle(image, (self.locate_x, self.locate_y), int(2.5 * self.diameter), (0, 0, 0), -1)
 
-    def drawDirection(self, image):
-        """
-        绘制标识方向的圆A （A的直径为d，圆A与定位圆O相邻，即圆心距|AO|=2d）
-        """
-        # 计算圆A的中心坐标x,y
-        x0, y0 = self.locate_x, self.locate_y  # 定位圆的中心坐标
-        y = y0 + int(1.5 * self.locate_radius * math.sin(math.radians(self.angle)))  # 绘制圆点时，中心坐标就有了误差，再后续的方向识别过程中只能精确到整数
-        x = x0 + int(1.5 * self.locate_radius * math.cos(math.radians(self.angle)))
-        cv2.circle(image, (x, y), int(1 / 3 * self.locate_radius), (255, 255, 255), -1)
 
     def identifyAngle(self, image):
         M = cv2.getRotationMatrix2D([self.locate_x, self.locate_x], 45 + self.angle, 1.0)
         cv2.warpAffine(image, M, (self.side, self.side), image)
+
 
     def create(self):
         canvas = np.zeros((self.side, self.side), np.uint8)
@@ -217,6 +208,7 @@ class Marker:
         # 绘制定位圆
         cv2.circle(canvas, [self.locate_x, self.locate_y], self.locate_radius, (255, 255, 255), -1)
         return canvas
+
 
 if __name__ == "__main__":
     distance = input("请输入编码距离：")
