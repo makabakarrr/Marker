@@ -15,12 +15,12 @@ folder = os.path.exists(dirPath)
 if not folder:
         os.mkdir(dirPath)
 
-xlsxPath = '../documents/marker_center_0428.xlsx'
+xlsxPath = '../documents/marker_0508.xlsx'
 # # 打开 XLSX 文件
 wb = openpyxl.load_workbook(xlsxPath)
 sheet = wb["Sheet1"]
 
-for i in range(0, 200):
+for i in range(0, 400):
     dis_int = random.randint(0, 999)
     dis_dec = round(random.random(), 3)
     distance = dis_int + dis_dec
