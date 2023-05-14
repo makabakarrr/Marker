@@ -193,7 +193,7 @@ class Marker:
 
 
     def identifyAngle(self, image):
-        M = cv2.getRotationMatrix2D([self.locate_x, self.locate_x], 45 + self.angle, 1.0)
+        M = cv2.getRotationMatrix2D([self.locate_x, self.locate_x], self.angle - 135, 1.0)
         cv2.warpAffine(image, M, (self.side, self.side), image)
 
 

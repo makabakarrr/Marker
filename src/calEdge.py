@@ -79,7 +79,7 @@ def region_growing(img, seed):
     return mask[1:-1, 1:-1]
 
 
-def unsharpMask(img, sigma, amount, thresh):
+def unSharpMask(img, sigma, amount, thresh):
     """
     图像锐化:  增强图像边缘信息，计算公式：Y = X+λZ  X为源图像，Z为校正因子，此处为高通滤波后的图像，λ为缩放因子
     :param img: 源图像
@@ -118,7 +118,7 @@ cv2.imwrite("../images/process/0428/process/" + imgName + "-enhance.bmp", enhanc
 
 blurred = cv2.GaussianBlur(enhance, (0, 0), 10)
 # usm = cv2.addWeighted(enhance, 1.8, blurred, -0.3, 0)
-usm = unsharpMask(enhance, 10, 60, 0)
+usm = unSharpMask(enhance, 10, 60, 0)
 cv2.imwrite("../images/process/0428/process/" + imgName + "-usm.bmp", usm)
 blurred1 = cv2.GaussianBlur(usm, (0, 0), 1)
 
