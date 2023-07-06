@@ -383,16 +383,12 @@ def getDistCombinations(source_combinations, source_points, dist_points):
             xx, yy = point
             if [xx, yy] == [src_n0[0], src_n0[1]]:
                 d.append(n0)
-                # d.append('n0')
             elif [xx, yy] == [src_n1[0], src_n1[1]]:
                 d.append(n1)
-                # d.append('n1')
             elif [xx, yy] == [src_n2[0], src_n2[1]]:
                 d.append(n2)
-                # d.append('n2')
             else:
                 d.append(n3)
-                # d.append('n3')
         dist_combinations.append(d)
 
     return np.array(dist_combinations)

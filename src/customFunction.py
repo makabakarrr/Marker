@@ -467,3 +467,50 @@ def isSameCircle(circle1, circle2, dist_threshold, radius_threshold):
         return True
     else:
         return False
+
+
+def getRemainPoint(source_combination, source_points, dist_points):
+
+    src_n0, src_n1, src_n2, src_n3 = [[x,y] for x,y in source_points]
+    n0, n1, n2, n3 = [[x,y] for x,y in dist_points]
+    s_points = [[x, y] for x, y in source_combination]
+    source_remain_point = src_n0
+    dist_remain_point = n0
+
+    if src_n0 not in s_points:
+        print("组合里没有src_n0")
+        source_remain_point = src_n0
+        dist_remain_point = n0
+    elif src_n1 not in s_points:
+        print("组合里没有src_n1")
+        source_remain_point = src_n1
+        dist_remain_point = n1
+    elif src_n2 not in s_points:
+        print("组合里没有src_n2")
+        source_remain_point = src_n2
+        dist_remain_point = n2
+    else:
+        print("组合里没有src_n3")
+        source_remain_point = src_n3
+        dist_remain_point = n3
+
+    return source_remain_point, dist_remain_point
+
+
+def getDistCombinations(source_combinations, source_points, dist_points):
+    src_n0, src_n1, src_n2, src_n3 = source_points
+    n0, n1, n2, n3 = dist_points
+    dist_combinations  = []
+    for s in source_combinations:
+        d = []
+        for point in s:
+            xx, yy = point
+            if [xx, yy] == [src_n0[0], src_n0[1]]:
+                d.append(n0)
+            elif [xx, yy] == [src_n1[0], src_n1[1]]:
+                d.append(n1)
+            elif [xx, yy] == [src_n2[0], src_n2[1]]:
+                d.append(n2)
+            else:
+                d.append(n3)
+        dist_combinations.append(d)
