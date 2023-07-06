@@ -1,3 +1,4 @@
+import cv2
 import numpy as np
 import cv2 as cv
 from matplotlib import pyplot as plt
@@ -171,19 +172,34 @@ def double_threshold(nms, threshold1, threshold2):
     return output_image
 
 
-if __name__ == "__main__":
-    # code to read image
-    imgName = "marker_7"
+# if __name__ == "__main__":
+#     # code to read image
+#     imgName = "marker_7"
+#
+#     image = cv.imread('../images/process/0428/' + imgName + '.png', 0)
+#     # cv.imshow("Original", image)
+#     smoothed_image = smooth(image)
+#     # cv.imshow("GaussinSmooth(5*5)", smoothed_image)
+#     gradients, direction = get_gradient_and_direction(smoothed_image)
+#     # print(gradients)
+#     # print(direction)
+#     nms = NMS(gradients, direction)
+#     output_image = double_threshold(nms, 40, 100)
+#     # cv.imshow("outputImage", output_image)
+#     # cv.waitKey(0)
+#     cv.imwrite("../images/process/0428/process/" + imgName + "-edges1.bmp", output_image)
 
-    image = cv.imread('../images/process/0428/' + imgName + '.png', 0)
-    # cv.imshow("Original", image)
-    smoothed_image = smooth(image)
-    # cv.imshow("GaussinSmooth(5*5)", smoothed_image)
-    gradients, direction = get_gradient_and_direction(smoothed_image)
-    # print(gradients)
-    # print(direction)
-    nms = NMS(gradients, direction)
-    output_image = double_threshold(nms, 40, 100)
-    # cv.imshow("outputImage", output_image)
-    # cv.waitKey(0)
-    cv.imwrite("../images/process/0428/process/" + imgName + "-edges1.bmp", output_image)
+
+# imgName = "circle"
+# img = cv.imread('../images/process/0428/'+imgName+'.png', 0)
+# edges = cv.Canny(img, 10, 50)
+# rows, cols = np.where(edges==255)
+# edges_points = [[x,y] for x,y in list(zip(cols, rows))]
+# edge_canvas = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+# for pp in edges_points:
+#     x, y = pp
+#     edge_canvas[y,x,:] = (0,0,255)
+# cv2.imwrite("../images/process/summary/gaussianOstuCanny/" + imgName + "-edges1.bmp", edge_canvas)
+# imgName = "marker_0"
+
+

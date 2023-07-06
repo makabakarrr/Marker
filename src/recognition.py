@@ -19,14 +19,14 @@ def recognition(thresh):
 
     # 对圆形轮廓进行分类
     cate1, center1, cate2, center2, cate3, center3 = cateCircles(circle_cnts, thresh)
-
+    print("center1:", len(center1), "center2:", len(center2), "center3:", len(center3))
     if len(center2)<1 or len(center3)<1 or len(center1)<3:
         print("没有检测到标记点！")
         return
 
     # 从非模板点中将定位圆的信息分离出来,分离后cate3、center3内值包含编码圆和方向圆的信息
-    locate_circle, locate_center = getLocateCircles(cate3, center3)
-    if len(locate_center)<1:
+    locate_circles, locate_centers = getLocateCircles(cate3, center3)
+    if len(locate_centers)<1:
         print("没有检测到定位圆")
         return
 
@@ -45,7 +45,7 @@ def recognition(thresh):
 
     for i in range(0, len(center2)):  # 有几个N0说明有几个标记点
         N0 = center2[i]
-        lp, n1, n2, n3 = matchPoint(center1, N0, locate_center)  # 查找与N0属于同一个标记点的模板点与定位圆
+        lp, n1, n2, n3 = matchPoint(center1, N0, locate_centers)  # 查找与N0属于同一个标记点的模板点与定位圆
         cv2.putText(drawCircle, 'n1', (int(n1[0]), int(n1[1])), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,255,0),2)
         cv2.putText(drawCircle, 'n2', (int(n2[0]), int(n2[1])), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,255,0),2)
         dst_points = np.array([N0, n1, n2, n3], np.float32)  # 四个模板点的图像坐标
@@ -79,8 +79,8 @@ def recognition(thresh):
 
 
         ## 计算对准相机中心平台需要移动的距离
-        move_x = 81/51.36*(average_y-1071)
-        move_y = 81/51.36*(average_x-1210)
+        move_x = 108/51.84*(average_y-1071)
+        move_y = 108/51.84*(average_x-1210)
         print("平台X方向移动{}μm,Y方向移动{}μm".format(move_x, move_y))
 
         # showPic("text", drawCircle)

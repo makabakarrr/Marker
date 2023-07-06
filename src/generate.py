@@ -191,11 +191,9 @@ class Marker:
             index_dec = decimal.find('1', index_dec + 1)
         cv2.circle(image, (self.locate_x, self.locate_y), int(2.5 * self.diameter), (0, 0, 0), -1)
 
-
     def identifyAngle(self, image):
         M = cv2.getRotationMatrix2D([self.locate_x, self.locate_x], self.angle - 135, 1.0)
         cv2.warpAffine(image, M, (self.side, self.side), image)
-
 
     def create(self):
         canvas = np.zeros((self.side, self.side), np.uint8)
@@ -214,7 +212,7 @@ if __name__ == "__main__":
     distance = input("请输入编码距离：")
     angle = float(input("请输入编码角度："))
     fileName = input("请输入文件名称：")
-    dirPath = "./images/generate/{}".format(datetime.date.today().strftime("%y%m%d"))
+    dirPath = "../images/generate/{}".format(datetime.date.today().strftime("%y%m%d"))
     folder = os.path.exists(dirPath)
     if not folder:
         os.mkdir(dirPath)

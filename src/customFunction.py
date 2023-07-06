@@ -171,7 +171,6 @@ def categoryCircles(cnts, thresh):
         for j in range(cy, y_coordinate-1): # y_coordinate-1为了消除模板点白色圆环内边界的影响
             if thresh[j + 1, cx] != thresh[j, cx]:
                 pixel_cate += 1
-        print(area)
         if area>4000 and pixel_cate == 3:  # 1类模板点--N0
             model1.append(circle)
             center1.append([x, y])
@@ -244,7 +243,6 @@ def matchPoint(center1, N0, locate_center):
     template_points = getKClosestPoints(lp, center1, 3)  # 从1类模板点中取出距离lp最近的3个点
     n3 = getClosestPointToLine(template_points, N0, lp)    # 距离直线N0-lp最近的点为N3
     template_points.remove(n3)
-
     p1 = np.array(template_points[0])
     p2 = np.array(template_points[1])
     # x_right = np.array([lp[0], N0[1]])
@@ -254,13 +252,13 @@ def matchPoint(center1, N0, locate_center):
     # level = np.array(lp) - x_right
     theta1 = calculateAngle(v1, level)
     theta2 = calculateAngle(v2, level)
+    # print("向量夹角：", np.degrees(theta1), np.degrees(theta2))
     if theta1 < theta2:
         n2 = template_points[0]
         n1 = template_points[1]
     else:
         n2 = template_points[1]
         n1 = template_points[0]
-
     return lp, n1, n2, n3
 
 
@@ -343,6 +341,23 @@ def cvtCodePoints(codePoints, matrix):
     return res
 
 
+def cvtCodePoints1(codePoints, matrix):
+    """
+    将设计坐标转换为图像坐标
+    :param codePoints: 坐标列表
+    :param matrix: 变换矩阵
+    :return: 变换后的坐标列表
+    """
+    res = []
+    for point in codePoints:
+        u = point[0]
+        v = point[1]
+        x = round(matrix[0][0] * u + matrix[0][1] * v + matrix[0][2], 4)
+        y = round(matrix[1][0] * u + matrix[1][1] * v + matrix[1][2], 4)
+        res.append([x, y])
+    return res
+
+
 def getCodeVal(thresh, points):
     """
     遍历points，读取灰度值，进行解码
@@ -352,7 +367,9 @@ def getCodeVal(thresh, points):
     """
     res = []
     for point in points:
-        if thresh[int(point[1]), int(point[0])] == 0:  # 图像坐标与像素坐标
+        i, j = int(point[1]), int(point[0])
+        surrounding = thresh[i-1:i+2, j-1:j+2]
+        if np.min(surrounding)==0:
             res.append('0')
         else:
             res.append('1')
@@ -440,3 +457,13 @@ def getBandCenter(bandAngles, lp, side):
     return bandCenter
 
 
+def isSameCircle(circle1, circle2, dist_threshold, radius_threshold):
+    # 计算两个圆心之间的距离
+    dist = math.sqrt((circle1[0]-circle2[0])**2 + (circle1[1]-circle2[1])**2)
+    # 计算两个圆半径之差
+    radius_diff = abs(circle1[2] - circle2[2])
+    # 判断是否代表同一个圆
+    if (dist <= dist_threshold) and (radius_diff <= radius_threshold):
+        return True
+    else:
+        return False

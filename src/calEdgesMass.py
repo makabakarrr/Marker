@@ -275,7 +275,7 @@ for m in range(0, 190):
         average_y = (y_o2 + lp[1]) / 2
         # print('第{}个标记点的中心坐标为:{}'.format(i + 1, [average_x, average_y]))
         sheet.cell(row=m + 2, column=4, value=round(average_x, 4))
-        sheet.cell(row=m + 2, column=5, value=round(average_x, 4))
+        sheet.cell(row=m + 2, column=5, value=round(average_y, 4))
 
         ## 方向识别
         # 取n1-n3的中点

@@ -59,14 +59,13 @@ def getClosestPointToLine(points, line_point1, line_point2):
     return [p_list[0][0], p_list[0][1]]
 
 
-
-def calculateAngle(v1, v2):
-    """
+"""
     计算两个向量的夹角
     :param v1: 向量1
     :param v2: 向量2
     :return: 夹角---弧度值
     """
+def calculateAngle(v1, v2):
     dot = v1[0] * v2[0] + v1[1] * v2[1]
     det = v1[0] * v2[1] - v1[1] * v2[0]
     theta = np.arctan2(det, dot) if np.arctan2(det, dot) > 0 else 2 * np.pi + np.arctan2(det, dot)

@@ -108,7 +108,7 @@ def unSharpMask(img, sigma, amount, thresh):
 
 
 
-imgName = "marker_7"
+imgName = "marker_3"
 
 img = cv2.imread('../images/process/0428/'+imgName+'.png', 0)
 ## 图像增强
@@ -131,7 +131,7 @@ cv2.imwrite("../images/process/0428/process/"+imgName+'-grad_mag.bmp', grad_mag)
 _, sobel_thresh = cv2.threshold(grad_mag, 25,255, cv2.THRESH_BINARY)
 cv2.imwrite("../images/process/0428/process/"+imgName+'-grad_thresh.bmp', sobel_thresh)
 
-edges = cv2.Canny(blurred1, 50, 150)
+edges = cv2.Canny(blurred1, 30, 100)
 cv2.imwrite("../images/process/0428/process/"+imgName+"-edges.bmp", edges)
 
 edges[edges==255] = 1
@@ -202,7 +202,7 @@ for i in range(0, len(circularCnts)):
         cv2.drawContours(mask_canvas2, [c], -1, (0,255,0), 1)
         (x,y), (a,b), angle = cv2.fitEllipse(c)
         k = 4 * math.pi * area / ((math.pi*a) ** 2)
-        print(i, area, length, a, b, abs(a-b), abs(k-1))
+        # print(i, area, length, a, b, abs(a-b), abs(k-1))
         cv2.putText(mask_canvas2, str(i), (int(x), int(y)), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255,0,0), 1)
         cv2.ellipse(mask_canvas2, (int(x), int(y)), (int(a/2), int(b/2)), angle,0, 360, (0,0,255), 1)
 
