@@ -625,7 +625,7 @@ def classifyCircle(circle_tree):
             print(r1, r2, np.sort(r_list))
             ratio1 = r2 / r1
             print(ratio1)
-            if abs(ratio1-1.7)<0.1:
+            if abs(ratio1-1.5)<0.1:
                 start_template_info.append(position)
             else:
                 other_circle_info.append(position[0])
@@ -640,7 +640,6 @@ def classifyCircle(circle_tree):
             code_circle_info.append(circle)
         else:
             locate_circle_info.append([circle])
-
     return start_template_info, other_template_info, locate_circle_info, code_circle_info
 
 
@@ -821,40 +820,32 @@ def unSharpMask(img, sigma, amount, thresh):
 #     print(imgName)
 #     r += 1
 # for m in range(0, 100):
-type = "tcg"
-imgName = "marker_7-1000-30"
+
+
+# filePath = "../documents/0627_location.xlsx"
+# wb = openpyxl.load_workbook(filePath)
+# sheet = wb['Sheet1']
+# r=62
+# img_name_list = ["marker_A-0", "marker_B-2", "marker_C-2", "marker_D-5", "marker_O"]
+# for imgName in img_name_list:
+#     print(imgName)
+#     r += 1
+# imgName = "marker_20-clahe-usm"
+# img = cv2.imread('../images/process/angle/imgAngle/'+imgName+'.bmp', 0)
+#     img = cv2.imread('../images/process/angle/imgLocation/'+imgName+'.bmp', 0)
 
 # img = cv2.imread('../images/process/angle/imgAngle/'+imgName+'.bmp', 0)
 # img = cv2.imread('../images/process/angle/imgLocation/'+imgName+'.bmp', 0)
-img = cv2.imread('../images/process/'+type+'/preprocess/'+imgName+'.png', 0)
-# img = cv2.imread('../images/process/0428/'+imgName+'.png', 0)
+type = "summary"
+imgName = "marker_0"
+# img = cv2.imread('../images/process/'+type+'/preprocess/'+imgName+'.png', 0)
+img = cv2.imread('../images/process/0428/'+imgName+'.png', 0)
 height, width = img.shape[0], img.shape[1]
-# blur = cv2.medianBlur(img, 3)
-# blur = cv2.GaussianBlur(img, (0, 0), 1.5)
-# blur = cv2.bilateralFilter(img, 5, 60, 80)
-blur = cv2.medianBlur(img, 7)
+blur = cv2.GaussianBlur(img, (0, 0), 1)
 cv2.imwrite("../images/process/"+type+"/testPre/"+imgName+"_blur.png", blur)
-
-# clahe = cv2.createCLAHE(4, (16,16))
-# enhance = clahe.apply(img)
-# cv2.imwrite("../images/process/"+type+"/testPre/"+imgName+"_clahe.png", enhance)
-# enhance1 = unSharpMask(enhance, 8, 200, 0)
-# blur = cv2.GaussianBlur(enhance1, (0, 0), 2.2)
-# blur1 = cv2.medianBlur(img, 7)
-# cv2.imwrite("../images/process/"+type+"/testPre/"+imgName+"_medianBlur.png", blur1)
-# clahe = cv2.createCLAHE(clipLimit=4, tileGridSize=(8,8))
-# enhance = clahe.apply(blur1)
-# blur = unSharpMask(enhance, 5, 300, 0)
-# cv2.imwrite("../images/process/"+type+"/testPre/"+imgName+"_usm.png", blur)
-# cv2.imwrite("../images/process/angle/medianBlur/" + imgName + '-blur.png', blur1)
-# cv2.imwrite("../images/process/angle/gaussianBlur/" + imgName + '-blur.png', blur)
-# img = cv2.imread("../images/process/0428/" + imgName + ".png", 0)
-# height, width = img.shape[0], img.shape[1]
-# blur = img.copy()
-# cv2.imwrite("../images/process/angle/gaussianBlur/" + imgName + '-blur.png', blur)
 sobelx = cv2.Sobel(blur, cv2.CV_64F, 1, 0)
 sobely= cv2.Sobel(blur, cv2.CV_64F, 0, 1)
-
+print(sobely.dtype, sobelx.dtype)
 mag, angle = cv2.cartToPolar(sobelx, sobely, angleInDegrees=True)
 
 grad_mag = cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8UC1)
@@ -865,6 +856,7 @@ print(th, tl)
 edges = cv2.Canny(blur, tl,th-10)
 cv2.imwrite("../images/process/"+type+"/gaussianOstuCanny/"+imgName+"_edges.png", edges)
 _, sobel_thresh = cv2.threshold(grad_mag, 10,255, cv2.THRESH_BINARY)
+print(sobel_thresh.dtype)
 cv2.imwrite("../images/process/"+type+"/sobelThresh/"+imgName+"_sobel_edges.png", sobel_thresh)
 sobel_angle = np.arctan(sobely, sobelx)
 
@@ -960,6 +952,7 @@ for n0 in start_circle_centers:
     cv2.putText(drawCircle, 'n0', (int(n0[0] + 50), int(n0[1] - 20)), cv2.FONT_HERSHEY_SIMPLEX, 1, (247, 162, 17), 2)
     cv2.circle(drawCircle, (int(n0[0]), int(n0[1])), 2, (247, 162, 17), -1)
     cv2.imwrite("../images/process/"+type+"/templateCircle/" + imgName + '-recognize.png', drawCircle)
+    print("locate_circle_centers:", locate_circle_centers)
     if len(template_circle_centers)<3 or len(locate_circle_centers)<1:
         continue
     lp, n1, n2, n3 = matchPoint(template_circle_centers, n0, locate_circle_centers)
@@ -978,23 +971,23 @@ for n0 in start_circle_centers:
     dist_points = np.array([n0, n1, n2, n3], dtype=np.float32)
     dist_combinations = getDistCombinations(source_combinations, source_points, dist_points)
     angle = 0.0
-    M = np.zeros((2,3), np.float32)
+    transform_matrix = np.zeros((2, 3), np.float32)
+    max_dist = 10.0
 
     for i in range(len(source_combinations)):
         MM = calculateAffineMatrix(source_combinations[i], dist_combinations[i])
-        M = np.add(M, MM)
-
-        angle += np.arctan2(MM[1, 0], MM[0, 0]) * 180 / np.pi
-
-    transform_matrix = M / len(source_combinations)
-    angle = angle / len(source_combinations)
-    print("均值：", 135 - angle)
-    M1 = calculateAffineMatrix(source_combinations[0], dist_combinations[0])
-    angle1 = np.arctan2(M1[1, 0], M1[0, 0]) * 180 / np.pi
-    print("使用1组数据", 135 - angle1)
-    angle2 = getAngle(lp, n0)
-    print("lp-n0:", angle2)
-
+        s_remain_p, d_remain_p = getRemainPoint(source_combinations[i], source_points, dist_points)
+        cal_dist_x = round(MM[0][0] * s_remain_p[0] + MM[0][1] * s_remain_p[1] + MM[0][2], 4)
+        cal_dist_y = round(MM[1][0] * s_remain_p[0] + MM[1][1] * s_remain_p[1] + MM[1][2], 4)
+        dist_err = np.sqrt((cal_dist_x - d_remain_p[0]) ** 2 + (cal_dist_y - d_remain_p[1]) ** 2)
+        print(dist_err, 135 - np.arctan2(MM[1, 0], MM[0, 0]) * 180 / np.pi)
+        if dist_err < max_dist:
+            max_dist = dist_err
+            angle = 135 - np.arctan2(MM[1, 0], MM[0, 0]) * 180 / np.pi
+            print("min:", dist_err, angle)
+            transform_matrix = MM
+    angle = angle if angle > 0 else 360 + angle
+    print("标识的角度为：", angle)
 
     ## 整数部分解码
     side_length = np.sqrt((n0[0]-n1[0])**2+(n0[1]-n1[1])**2)
@@ -1022,13 +1015,15 @@ for n0 in start_circle_centers:
     # move_y = round(97*0.545/83 * (average_x - 960), 4)
     # move_x = round(95*0.53/83 * (average_y - 1071), 4)
     # move_y = round(95*0.53/83 * (average_x - 1214), 4)
-    move_x = round(95 * 0.54 / 82 * (lp[1]-1068.5)*0.001, 6)
-    move_y = round(95 * 0.54 / 82 * (lp[0]-1214)*0.001, 6)
+    move_x = round(95 * 0.536 / 82 * (lp[1]-1067), 6)
+    move_y = round(95 * 0.536 / 82 * (lp[0]-1214), 6)
     print("平台X方向移动{}μm,Y方向移动{}μm".format(move_x, move_y))
+    # sheet.cell(row=r, column=6, value=move_x)
+    # sheet.cell(row=r, column=7, value=move_y)
     # L = int(int_str, 2) + int(dec_value, 2)*0.001
     # next_x = -L * math.sin(math.radians(angle))
     # next_y = L * math.cos(math.radians(angle))
     # print("找到下一个标记点：平台X方向移动{}μm，Y方向移动{}μm".format(next_x, next_y))
-
+# wb.save(filePath)
 
 

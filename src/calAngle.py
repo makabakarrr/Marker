@@ -66,7 +66,7 @@ sheet = wb['Sheet1']
 #
 # wb.save(filePath)
 
-for r in range(2, 30):
+for r in range(2, 32):
     # point1_x = sheet.cell(row=r, column=9).value
     # point1_y = sheet.cell(row=r, column=10).value
     # point2_x = sheet.cell(row=r, column=11).value
@@ -81,3 +81,7 @@ for r in range(2, 30):
     # sheet.cell(row=r, column=16, value=round(abs(angle2-angle1), 4))
 
 wb.save(filePath)
+
+# p_angle_err = []
+# sub_angle_err = []
+# for i in range(2, )

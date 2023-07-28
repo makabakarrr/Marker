@@ -2,8 +2,11 @@ import math
 import cv2
 import numpy as np
 import random
+import matplotlib.pyplot as plt
 
 from utils import getKClosestPoints, getClosestPointToLine, calculateAngle, calculateAverageAngle
+
+from scipy.optimize import curve_fit
 
 
 # 创建圆
@@ -238,27 +241,28 @@ def matchPoint(center1, N0, locate_center):
     :param locate_center: 中心圆心坐标列表
     :return: lp, n1, n2, n3
     """
+
     lp = getKClosestPoints(N0, locate_center, 1)[0]  # 距离N0最近的定位圆为该标记点的定位圆
     locate_center.remove(lp)  # 从locate_center中移除该点
     template_points = getKClosestPoints(lp, center1, 3)  # 从1类模板点中取出距离lp最近的3个点
     n3 = getClosestPointToLine(template_points, N0, lp)    # 距离直线N0-lp最近的点为N3
     template_points.remove(n3)
-    p1 = np.array(template_points[0])
-    p2 = np.array(template_points[1])
+    p1 = template_points.pop(0)
+    p2 = template_points.pop(0)
     # x_right = np.array([lp[0], N0[1]])
-    v1 = np.array(lp) - p1
-    v2 = np.array(lp) - p2
+    v1 = np.array(lp) - np.array(p1)
+    v2 = np.array(lp) - np.array(p2)
     level = np.array(lp) - np.array(N0)
     # level = np.array(lp) - x_right
     theta1 = calculateAngle(v1, level)
     theta2 = calculateAngle(v2, level)
     # print("向量夹角：", np.degrees(theta1), np.degrees(theta2))
     if theta1 < theta2:
-        n2 = template_points[0]
-        n1 = template_points[1]
+        n2 = p1
+        n1 = p2
     else:
-        n2 = template_points[1]
-        n1 = template_points[0]
+        n2 = p2
+        n1 = p1
     return lp, n1, n2, n3
 
 
@@ -352,8 +356,8 @@ def cvtCodePoints1(codePoints, matrix):
     for point in codePoints:
         u = point[0]
         v = point[1]
-        x = round(matrix[0][0] * u + matrix[0][1] * v + matrix[0][2], 4)
-        y = round(matrix[1][0] * u + matrix[1][1] * v + matrix[1][2], 4)
+        x = round(matrix[0][0] * u + matrix[0][1] * v + matrix[0][2], 6)
+        y = round(matrix[1][0] * u + matrix[1][1] * v + matrix[1][2], 6)
         res.append([x, y])
     return res
 
@@ -478,19 +482,15 @@ def getRemainPoint(source_combination, source_points, dist_points):
     dist_remain_point = n0
 
     if src_n0 not in s_points:
-        print("组合里没有src_n0")
         source_remain_point = src_n0
         dist_remain_point = n0
     elif src_n1 not in s_points:
-        print("组合里没有src_n1")
         source_remain_point = src_n1
         dist_remain_point = n1
     elif src_n2 not in s_points:
-        print("组合里没有src_n2")
         source_remain_point = src_n2
         dist_remain_point = n2
     else:
-        print("组合里没有src_n3")
         source_remain_point = src_n3
         dist_remain_point = n3
 
@@ -514,3 +514,193 @@ def getDistCombinations(source_combinations, source_points, dist_points):
             else:
                 d.append(n3)
         dist_combinations.append(d)
+    return np.array(dist_combinations)
+
+
+
+def calCentersByAverage(center_info):
+    cate_center= []
+    for cate in center_info:
+        mean_val = np.array(np.mean(np.array(cate)[:, 0:2], axis=0).round(4))
+        cate_center.append([mean_val[0], mean_val[1]])
+    return cate_center
+
+
+def cal_gaussian(Z, X):
+    A = np.zeros((len(X), 3))
+    for i in range(3):
+        A[:, i] = np.power(X, i)
+    A_T = A.T
+    Z_T = Z.T
+    ATA = np.dot(A_T, A)
+    b = np.dot(A_T, Z_T)
+    if np.linalg.det(ATA)==0:
+        return 0
+    else:
+        B = np.dot(np.linalg.inv(ATA), b)
+
+        # BB = -1*B[1]/(2*B[2])
+        # if BB>3:
+        #     BB = 3
+        # elif BB<0.0001:
+        #     BB = 0.0001
+        # return 0 if np.isnan(BB) else BB
+        return B
+
+def func(x, *params):
+    # return params[0]*np.exp(-(x-params[1])**2/(2*params[2]**2))
+    return params[0] * np.exp(-np.power(x-params[1], 2.) / (2*np.power(params[2], 2.)))
+
+
+def poly_func(x, *params):
+    return params[2]*np.power(x, 2.) + params[1]*x + params[0]
+
+
+def gaussian_fit(p, sobelx, sobely, sobel_angle):
+    x, y = p
+
+    dx = abs(sobelx)
+    dy = abs(sobely)
+    # theta = sobely[y][x] / sobelx[y][x]
+    # print(np.min(angle), np.max(angle))
+    theta = np.degrees(sobel_angle[y][x])
+    step = 180 / 8
+    if -1*step <= theta < theta:
+        y_bar = [0] * 5
+        x_bar = [x for x in range(-2, 3)]
+    elif step <= theta < 3*step:
+        y_bar = [y for y in range(2, - 3, -1)]
+        x_bar = [x for x in range(-2, 3)]
+    elif 3*step<=theta or theta <= -3*step:
+        x_bar = [0] * 5
+        y_bar = [y for y in range(2, -3, -1)]
+    else:
+        y_bar = [y for y in range(-2, 3)]
+        x_bar = [x for x in range(-2, 3)]
+    # if -1*step <= theta < theta:
+    #     y_bar = [0] * 3
+    #     x_bar = [x for x in range(-1, 2)]
+    # elif step <= theta < 3*step:
+    #     y_bar = [y for y in range(1, - 2, -1)]
+    #     x_bar = [x for x in range(-1, 2)]
+    # elif 3*step<=theta or theta <= -3*step:
+    #     x_bar = [0] * 3
+    #     y_bar = [y for y in range(1, -2, -1)]
+    # else:
+    #     y_bar = [y for y in range(-1, 2)]
+    #     x_bar = [x for x in range(-1, 2)]
+
+    zeros = np.array([0]*5)
+
+    # 获取五组数据的梯度幅值
+    mag_y = [dy[j+y][i+x] for j,i in list(zip(y_bar, x_bar))]
+    mag_x = [dx[j+y][i+x] for j,i in list(zip(y_bar, x_bar))]
+
+    params1, params2, params_cov1, params_cov2 = [], [], [], []
+    B1, B2 = [], []
+    zeros = np.array([0] * 5)
+    if np.array_equal(zeros, x_bar):
+        subx = 0.0
+        # suby = cal_gaussian(np.array(mag_y, dtype=np.float32), y_bar)
+        params2, params_cov2 = curve_fit(func, y_bar, mag_y)
+        B2 = cal_gaussian(np.array(mag_y, dtype=np.float32), y_bar)
+        print(B2)
+    elif np.array_equal(zeros, y_bar):
+        suby = 0.0
+        # subx = cal_gaussian(np.array(mag_x, dtype=np.float32), x_bar)
+        params1, params_cov1 = curve_fit(func, x_bar, mag_x)
+        B1 = cal_gaussian(np.array(mag_x, dtype=np.float32), x_bar)
+        print(B1)
+    else:
+        # subx = cal_gaussian(np.array(mag_x, dtype=np.float32), x_bar)
+        # suby = cal_gaussian(np.array(mag_y, dtype=np.float32), y_bar)
+        params2, params_cov2 = curve_fit(func, y_bar, mag_y)
+        params1, params_cov1 = curve_fit(func, x_bar, mag_x)
+        B1 = cal_gaussian(np.array(mag_x, dtype=np.float32), x_bar)
+        B2 = cal_gaussian(np.array(mag_y, dtype=np.float32), y_bar)
+
+    x_list, y_list = [], []
+    fit_x, fit_x_2, fit_y, fit_y_2 = [], [], [], []
+    if np.array_equal(zeros, x_bar):
+        y_list = np.linspace(-2, 2, 100)
+        fit_y = func(y_list, *params2)
+        fit_y_2 = poly_func(y_list, *B2)
+    elif np.array_equal(zeros, y_bar):
+        x_list = np.linspace(-2, 2, 100)
+        fit_x = func(x_list, *params1)
+        fit_x_2 = poly_func(x_list, *B1)
+    else:
+        y_list = np.linspace(-2, 2, 100)
+        x_list = np.linspace(-2, 2, 100)
+        fit_y = func(y_list, *params2)
+        fit_x = func(x_list, *params2)
+        fit_x_2 = poly_func(x_list, *B1)
+        fit_y_2 = poly_func(y_list, *B2)
+    # fit_x = [func(x, params1[0], params1[1], params1[2]) for x in x_bar]
+    # fit_y = [func(y, params2[0], params2[1], params2[2]) for y in y_bar]
+    plt.subplot(121)
+    plt.bar(x_bar, mag_x)
+    plt.plot(x_list, fit_x)
+    plt.plot(x_list, fit_x_2)
+    plt.subplot(122)
+    plt.bar(y_bar, mag_y)
+    plt.plot(y_list, fit_y)
+    plt.plot(y_list, fit_y_2)
+    plt.show()
+    # print("拟合结果：", params1[1], params2[1])
+
+
+    return x + 0.1, y + 0.1
+
+
+def getSubEdgePoints(circle_points, sobelx, sobely, sobel_angle):
+    cur_sub_edges = []
+    for p in circle_points:
+        xx, yy = gaussian_fit(p, sobelx, sobely, sobel_angle)
+        # cur_sub_edges.append([xx, yy])
+        cur_sub_edges.append([[xx, yy]])
+
+    return cur_sub_edges
+
+
+def getCenterBySubEdges(template_center,  edges_points, sobelx, sobely, sobel_angle):
+    sub_centers = []
+    # sub_edges_points = []
+    # cur_edges_points = []
+
+    for pos in template_center:
+        cur_pos_centers = []
+        for circle in pos:
+            cur_edges = edges_points[int(circle[3])]
+            cur_sub_edges = getSubEdgePoints(cur_edges, sobelx, sobely, sobel_angle)
+            (s_x, s_y), (s_a, s_b), angle = cv2.fitEllipse(np.array(cur_sub_edges, dtype=np.float32))
+            if np.isnan(s_x) or np.isnan(s_y) or np.isnan(s_a) or np.isnan(s_b):
+                continue
+            else:
+                cur_pos_centers.append([np.float32(s_x), np.float32(s_y), np.float32(max(s_a, s_b) / 2)])
+            # sub_points = [[x, y] for [[x, y]] in cur_sub_edges]
+            # sub_edges_points.append(sub_points)
+            # cur_edges_points.append(cur_edges)
+        sub_centers.append(cur_pos_centers)
+
+    return sub_centers
+
+
+
+def drawDonut(img, circle_list):
+    canvas = img
+    colors = [[255,255,255], [0,0,0]]
+    for position in circle_list:
+        r_list = np.array(position)[:, 2]
+        sorted_r_index = np.argsort(r_list)[::-1]
+        sorted_circles = np.array(position)[sorted_r_index]
+        for i in range(0, len(sorted_circles)):
+            color = colors[i%2]
+            c = sorted_circles[i]
+            cv2.circle(canvas, (int(c[0]), int(c[1])), int(c[2]), color, -1)
+
+
+def func(x, a, x0, sigma):
+    return a*np.exp(-(x-x0)**2/(2*sigma**2))
+
+
