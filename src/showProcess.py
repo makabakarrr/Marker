@@ -16,6 +16,7 @@ from utils import calculateCrossPoint, getAngle, calculateAngle
 from ransacFunction import ransac_circle_fit
 
 from sklearn.cluster import DBSCAN
+plt.rcParams['font.sans-serif']=['SimHei']  # 用来正常显示中文标签
 
 
 
@@ -105,7 +106,8 @@ def extractCircles(cnts, no_branch, edges_points):
         if len(cnt) > 10:
             (cx, cy), (a, b), angle = cv2.fitEllipse(cnt)
             radius = max(a, b) / 2
-            if min(a,b)<20 or max(a, b)>100:
+
+            if min(a,b)<20 or max(a, b)>200:
                 continue
             # 求内点数量
             perimeter = 2 * np.pi * radius
@@ -123,11 +125,11 @@ def extractCircles(cnts, no_branch, edges_points):
                     nums += 1
 
             k = nums / perimeter
-            # cv2.circle(circle_canvas, (int(cx), int(cy)), int(radius), (0, 0, 255), 1)
+            cv2.circle(circle_canvas, (int(cx), int(cy)), int(radius), (0, 0, 255), 1)
             # cv2.putText(circle_canvas, str(radius), (int(cx)+int(radius), int(cy)), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,255,0), 1)
-            if k > 0.2:  # 圆形轮廓
+            if k > 0.3:  # 圆形轮廓
                 circle_info.append([cx, cy, radius, len(circle_edge_points), k])    # [中心坐标x, 中心坐标y, 对应的边缘点索引号, k值]
-                cv2.circle(circle_canvas, (int(cx), int(cy)), int(radius), (0, 0, 255), 1)
+                # cv2.circle(circle_canvas, (int(cx), int(cy)), int(radius), (0, 0, 255), 1)
                 for p in test_points:
                     i, j = p
                     filter_cnts[j][i] = 255
@@ -135,6 +137,7 @@ def extractCircles(cnts, no_branch, edges_points):
 
 
     cv2.imwrite("../images/process/"+type+"/filterCnts/" + imgName + '-filter_cnts.png', filter_cnts)
+
     cv2.imwrite("../images/process/"+type+"/filterCnts/" + imgName + '-fit_circle.png', circle_canvas)
     return circle_info, circle_edge_points
 
@@ -147,6 +150,7 @@ def classifyArcByPosition(circle_info):
     # plt.scatter(np.array(circle_info)[:, 0], np.array(circle_info)[:, 1], s=10, marker="*", c=db.labels_)
     # plt.show()
     return c_s
+
 
 def classifyArcByKmeans(circle_info):
     new_circle_info = [0]*len(circle_info)
@@ -211,19 +215,74 @@ def classifyArcByRadius(circle_info, category_index):
     return all_circle_tree
 
 
-def showClassifyArcByPosition(category_indexs, circle_info, circle_edge_points):
-    classify_canvas = np.zeros((height, width, 3), np.uint8)
-    # classify_canvas *= 255
+def showClassifyArcByKmeans(category_indexs, circle_info, circle_edge_points):
+    classify_canvas = np.ones((height, width, 3), np.uint8)
+    classify_canvas *= 255
+    bg = classify_canvas.copy()
+    color = [(90, 35, 74), (61, 38, 215), (5, 203, 255)]
+    cates_points_x = []
+    cates_points_y = []
     for c in range(np.max(category_indexs) + 1):
-        color = (np.random.randint(0, 255), np.random.randint(0, 255), np.random.randint(0, 255))
+        cate_points_x = []
+        cate_points_y = []
+        # color = (np.random.randint(0, 255), np.random.randint(0, 255), np.random.randint(0, 255))
         cate_indexs = np.where(category_indexs == c)[0]  # 某一类的索引
         for index in cate_indexs:
             circle = circle_info[index]
             circle_edges = circle_edge_points[int(circle[3])]
             for point in circle_edges:
                 x,y = point
-                classify_canvas[y, x, :] = color
+                cate_points_x.append(x)
+                cate_points_y.append(y)
+                classify_canvas[y, x, :] = color[c]
+        cates_points_x.append(cate_points_x)
+        cates_points_y.append(cate_points_y)
+
+    plt.imshow(bg, cmap="gray")
+
+    plt.scatter(cates_points_x[0], cates_points_y[0], c="#4A235A", marker="*", s=1)
+    plt.scatter(cates_points_x[1], cates_points_y[1], c="#D7263D", marker="*", s=1)
+    plt.scatter(cates_points_x[2], cates_points_y[2], c="#FFCB05", marker="*", s=1)
+    plt.grid()
+    plt.title("按半径分成三类")
+    plt.show()
+
     cv2.imwrite("../images/process/"+type+"/classifyByKmeans/" + imgName + "_radius_cate_kmeans.png", classify_canvas)
+
+
+def showClassifyArcByPos(category_indexs, circle_info, circle_edge_points):
+    classify_canvas = np.ones((height, width, 3), np.uint8)
+    classify_canvas *= 255
+    bg = classify_canvas.copy()
+    colors = []
+    cates_points_x = []
+    cates_points_y = []
+    for c in range(np.max(category_indexs) + 1):
+        cate_points_x = []
+        cate_points_y = []
+        color = (np.random.randint(0, 255), np.random.randint(0, 255), np.random.randint(0, 255))
+        colors.append(color)
+        cate_indexs = np.where(category_indexs == c)[0]  # 某一类的索引
+        for index in cate_indexs:
+            circle = circle_info[index]
+            circle_edges = circle_edge_points[int(circle[3])]
+            for point in circle_edges:
+                x,y = point
+                cate_points_x.append(x)
+                cate_points_y.append(y)
+                classify_canvas[y, x, :] = colors[c]
+        cates_points_x.append(cate_points_x)
+        cates_points_y.append(cate_points_y)
+
+    plt.imshow(bg, cmap="gray")
+    for j in range(np.max(category_indexs) + 1):
+        plt.scatter(cates_points_x[j], cates_points_y[j], c='#{:02x}{:02x}{:02x}'.format(colors[j][0], colors[j][1], colors[j][2]), marker="*", s=2)
+
+    plt.grid()
+    plt.title("按位置进行分类")
+    plt.show()
+
+    cv2.imwrite("../images/process/"+type+"/classifyByPos/" + imgName + "_category.png", classify_canvas)
 
 
 def showClassifyArcByRadius(classify_tree, circle_edge_points, name):
@@ -246,17 +305,33 @@ def showClassifyArcByRadius(classify_tree, circle_edge_points, name):
 def showFilterArc(classify_tree, circle_edge_points, name):
     classify_canvas = np.ones((height, width, 3), np.uint8)
     classify_canvas *= 255
+    bg = classify_canvas.copy()
+    pos_points_x = []
+    pos_points_y = []
+    colors = []
     for position in classify_tree:
-        colors = []
+
         for i in range(len(position)):
             colors.append((np.random.randint(0, 255), np.random.randint(0, 255), np.random.randint(0, 255)))
-
+        pos_p_x = []
+        pos_p_y = []
         for j in range(len(position)):
             circle = position[j]
             cur_circle_points = circle_edge_points[int(circle[3])]
             for point in cur_circle_points:
                 x, y = point
+                pos_p_x.append(x)
+                pos_p_y.append(y)
                 classify_canvas[y, x, :] = colors[j]
+        pos_points_x.append(pos_p_x)
+        pos_points_y.append(pos_p_y)
+
+    plt.imshow(bg, cmap="gray")
+    for j in range(0, len(classify_tree)):
+        plt.scatter(pos_points_x[j], pos_points_y[j], c='#{:02x}{:02x}{:02x}'.format(colors[j][0], colors[j][1], colors[j][2]), marker="*", s=2)
+    plt.grid()
+    plt.title("消除伪边缘", fontsize='xx-large',fontweight='heavy')
+    plt.show()
     cv2.imwrite("../images/process/"+type+"/" + name + "/" + imgName + "_category.png", classify_canvas)
 
 
@@ -354,6 +429,8 @@ def delBranch(edges, angle_thresh):
             cv2.drawContours(sub_mask1, [cnt], -1, (255,255,255), 1)
             cv2.drawContours(sub_mask2, [cnt], -1, (255,255,255), 1)
             cv2.drawContours(sub_mask3, [cnt], -1, (255,255,255), 1)
+
+
             epsilon = 1
             approx = cv2.approxPolyDP(cnt, epsilon, False)
             ### approx可视化
@@ -529,7 +606,7 @@ def extractCircularEdges(sobel_thresh, side_length):
 
 
 def showExtractArc(circle_edge_points, name):
-    arc_edge = np.zeros((height, width, 3), np.uint8)
+    arc_edge = np.ones((height, width, 3), np.uint8)
     arc_edge *= 255
     colors = []
     for i in range(len(circle_edge_points)):
@@ -539,7 +616,8 @@ def showExtractArc(circle_edge_points, name):
         for point in points:
             x, y = point
             arc_edge[y, x, :] = colors[circle_index]
-    # cv2.imwrite("../images/process/"+type+"/" + name +"/" + imgName + '_arc.png', arc_edge)
+    cv2.imwrite("../images/process/"+type+"/" + name +"/" + imgName + '_arc.png', arc_edge)
+
 
 
 def isSameCircle(circle1, circle2, dist_threshold, radius_threshold):
@@ -621,16 +699,6 @@ def classifyCircle(circle_tree):
             #     other_template_info.append(position)
             other_template_info.append(position)
         elif length == 2:
-<<<<<<< HEAD
-            # r1, r2 = np.sort(r_list)
-            # print(r1, r2, np.sort(r_list))
-            # ratio1 = r2 / r1
-            # print(ratio1)
-            # if abs(ratio1-1.5)<0.1:
-            start_template_info.append(position)
-            # else:
-            #     other_circle_info.append(position[0])
-=======
             r1, r2 = np.sort(r_list)
             print(r1, r2, np.sort(r_list))
             ratio1 = r2 / r1
@@ -639,7 +707,6 @@ def classifyCircle(circle_tree):
                 start_template_info.append(position)
             else:
                 other_circle_info.append(position[0])
->>>>>>> 971fde92cf0a67e266f1c1fb3524266357f52799
         else:
             other_circle_info.append(position[0])
 
@@ -656,18 +723,25 @@ def classifyCircle(circle_tree):
 
 def showClassifyCircle(starts, templates, locates, codes, circle_edges_points):
     classify_canvas = np.zeros((height, width, 3), np.uint8)
+    # classify_canvas = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
     for pos in starts:
         for circle in pos:
             circle_edges = circle_edges_points[int(circle[3])]
             for p in circle_edges:
                 x, y = p
                 classify_canvas[y, x, :] = (14, 169, 250)   #橘色
+
+            # 绘制检测出来的完整圆
+            # cv2.circle(classify_canvas, (int(circle[0]), int(circle[1])), int(circle[2]), (14, 169, 250), 1)
     for pos in templates:
         for circle in pos:
             circle_edges = circle_edges_points[int(circle[3])]
             for p in circle_edges:
                 x, y = p
                 classify_canvas[y, x, :] = (17, 17, 255)  # 红色
+
+            # 绘制检测出来的完整圆
+            # cv2.circle(classify_canvas, (int(circle[0]), int(circle[1])), int(circle[2]), (17, 17, 255), 1)
     for pos in codes:
         circle_edges = circle_edges_points[int(pos[3])]
         for p in circle_edges:
@@ -831,20 +905,6 @@ def unSharpMask(img, sigma, amount, thresh):
 #     print(imgName)
 #     r += 1
 # for m in range(0, 100):
-<<<<<<< HEAD
-type = "tcg"
-imgName = "marker_F"
-
-# img = cv2.imread('../images/process/angle/imgAngle/'+imgName+'.bmp', 0)
-# img = cv2.imread('../images/process/angle/imgLocation/'+imgName+'.bmp', 0)
-img = cv2.imread('../images/process/'+type+'/0713/'+imgName+'.bmp', 0)
-# img = cv2.imread('../images/process/0428/'+imgName+'.png', 0)
-height, width = img.shape[0], img.shape[1]
-# blur = cv2.medianBlur(img, 3)
-blur = cv2.GaussianBlur(img, (0, 0), 2.3)
-# blur = cv2.bilateralFilter(img, 5, 60, 80)
-# blur = cv2.medianBlur(img, 7)
-=======
 
 
 # filePath = "../documents/0627_location.xlsx"
@@ -861,17 +921,19 @@ blur = cv2.GaussianBlur(img, (0, 0), 2.3)
 
 # img = cv2.imread('../images/process/angle/imgAngle/'+imgName+'.bmp', 0)
 # img = cv2.imread('../images/process/angle/imgLocation/'+imgName+'.bmp', 0)
-type = "summary"
+type = "summary_last"
 imgName = "marker_0"
-# img = cv2.imread('../images/process/'+type+'/preprocess/'+imgName+'.png', 0)
-img = cv2.imread('../images/process/0428/'+imgName+'.png', 0)
+img = cv2.imread('../images/process/'+type+'/img/'+imgName+'.png', 0)
+# img = cv2.imread('../images/process/0428/'+imgName+'.png', 0)
 height, width = img.shape[0], img.shape[1]
+# clahe = cv2.createCLAHE(clipLimit=4, tileGridSize=(16, 16))
+# enhance = clahe.apply(img)
+# blur = cv2.GaussianBlur(enhance, (0, 0), 1.5)
 blur = cv2.GaussianBlur(img, (0, 0), 1)
->>>>>>> 971fde92cf0a67e266f1c1fb3524266357f52799
 cv2.imwrite("../images/process/"+type+"/testPre/"+imgName+"_blur.png", blur)
 sobelx = cv2.Sobel(blur, cv2.CV_64F, 1, 0)
 sobely= cv2.Sobel(blur, cv2.CV_64F, 0, 1)
-print(sobely.dtype, sobelx.dtype)
+
 mag, angle = cv2.cartToPolar(sobelx, sobely, angleInDegrees=True)
 
 grad_mag = cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8UC1)
@@ -879,10 +941,9 @@ th, _ = cv2.threshold(grad_mag, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 # print("th:", th)
 tl = max(0, int(th * 0.3))
 print(th, tl)
-edges = cv2.Canny(blur, tl,th-20)
+edges = cv2.Canny(blur, tl,th-10)
 cv2.imwrite("../images/process/"+type+"/gaussianOstuCanny/"+imgName+"_edges.png", edges)
 _, sobel_thresh = cv2.threshold(grad_mag, 10,255, cv2.THRESH_BINARY)
-print(sobel_thresh.dtype)
 cv2.imwrite("../images/process/"+type+"/sobelThresh/"+imgName+"_sobel_edges.png", sobel_thresh)
 sobel_angle = np.arctan(sobely, sobelx)
 
@@ -894,9 +955,12 @@ for pp in edges_points:
     edge_canvas[y,x,:] = (0,0,255)
 cv2.imwrite("../images/process/"+type+"/gaussianOstuCanny/"+imgName+"_edges2.png", edge_canvas)
 print("边缘点的个数为：", len(edges_points))
+plt.imshow(img, cmap="gray")
+plt.scatter(cols, rows, marker="*")
+plt.show()
 # 去除分叉的边缘（可消除圆弧交叉的情况）
 no_branch = delBranch(edges, 60)
-# cv2.imwrite("../images/process/"+type+"/delBranch/" + imgName + '-no_branch.png', no_branch)
+cv2.imwrite("../images/process/"+type+"/delBranch/" + imgName + '-no_branch.png', no_branch)
 
 # 圆弧检测
 filter_cnts = np.zeros(edges.shape, dtype=np.uint8)
@@ -911,11 +975,11 @@ group_circles_info, group_circles_points = groupCircles(circle_info, circle_edge
 showExtractArc(group_circles_points, "groupArc")
 
 labels, new_circles_info = classifyArcByKmeans(group_circles_info)
-showClassifyArcByPosition(labels, group_circles_info, group_circles_points)
+showClassifyArcByKmeans(labels, group_circles_info, group_circles_points)
 
 # 圆弧分类-----按位置分
 category_index = classifyArcByPosition(new_circles_info)
-# showClassifyArcByPosition(category_index, new_circles_info, group_circles_points)
+showClassifyArcByPos(category_index, new_circles_info, group_circles_points)
 # category_index列表，与group_circle_info长度相等，每一个元素代表group_circle_info相同索引的元素所属的类别
 
 simplify_circle_tree = filterArcByMaxK(new_circles_info, category_index)
@@ -925,18 +989,19 @@ showFilterArc(simplify_circle_tree, group_circles_points, "simplifyArc")
 start_template_info, other_template_info,locate_circle_info, code_circle_info = classifyCircle(simplify_circle_tree)
 
 res_canvas = showClassifyCircle(start_template_info, other_template_info, locate_circle_info, code_circle_info, group_circles_points)
-cv2.imwrite("../images/process/"+type+"/templateCircle/" + imgName + '-category.png', res_canvas)
+cv2.imwrite("../images/process/"+type+"/templateCircle/" + imgName + '-cate.png', res_canvas)
+
 print(len(start_template_info), len(other_template_info), len(locate_circle_info), len(code_circle_info))
 # 填补编码圆
 int_thresh = fillIntCircle(no_branch, code_circle_info)
 
-time1 = time.time()
-start_template_centers, start_template_sub_edges, start_template_edges = getCenterBySubEdges(start_template_info, group_circles_points)
-other_template_centers, other_template_sub_edges, other_template_edges = getCenterBySubEdges(other_template_info, group_circles_points)
-print("locate_circle_info:", locate_circle_info)
-locate_centers, locate_sub_edges, locate_edges = getCenterBySubEdges(locate_circle_info, group_circles_points)
-time2 = time.time()
-print("耗时：", time2-time1)
+# time1 = time.time()
+# start_template_centers, start_template_sub_edges, start_template_edges = getCenterBySubEdges(start_template_info, group_circles_points)
+# other_template_centers, other_template_sub_edges, other_template_edges = getCenterBySubEdges(other_template_info, group_circles_points)
+# print("locate_circle_info:", locate_circle_info)
+# locate_centers, locate_sub_edges, locate_edges = getCenterBySubEdges(locate_circle_info, group_circles_points)
+# time2 = time.time()
+# print("耗时：", time2-time1)
 
 # print(start_template_sub_edges)
 # showSubEdges(start_template_edges, start_template_sub_edges)
@@ -944,12 +1009,12 @@ print("耗时：", time2-time1)
 # showSubEdges(locate_edges, locate_sub_edges)
 
 # 使用均值求出模板点、定位圆的中心坐标点---粗定位
-# start_circle_centers = calCentersByAverage(start_template_info)
-# template_circle_centers = calCentersByAverage(other_template_info)
-# locate_circle_centers = calCentersByAverage(locate_circle_info)
-start_circle_centers = calCentersByAverage(start_template_centers)
-template_circle_centers = calCentersByAverage(other_template_centers)
-locate_circle_centers = calCentersByAverage(locate_centers)
+start_circle_centers = calCentersByAverage(start_template_info)
+template_circle_centers = calCentersByAverage(other_template_info)
+locate_circle_centers = calCentersByAverage(locate_circle_info)
+# start_circle_centers = calCentersByAverage(start_template_centers)
+# template_circle_centers = calCentersByAverage(other_template_centers)
+# locate_circle_centers = calCentersByAverage(locate_centers)
 # print(template_circle_centers)
 # print("locate_circle_centers", locate_circle_centers)
 # 识别N1, N2, N3
@@ -972,13 +1037,13 @@ source_combinations = np.array(list(itertools.combinations(source_points, 3)))
 # print(source_points)
 # print(source_combinations)
 
-drawCircle = cv2.cvtColor(filter_cnts, cv2.COLOR_GRAY2BGR)
+# drawCircle = cv2.cvtColor(filter_cnts, cv2.COLOR_GRAY2BGR)
+drawCircle = res_canvas
 
 for n0 in start_circle_centers:
     cv2.putText(drawCircle, 'n0', (int(n0[0] + 50), int(n0[1] - 20)), cv2.FONT_HERSHEY_SIMPLEX, 1, (247, 162, 17), 2)
     cv2.circle(drawCircle, (int(n0[0]), int(n0[1])), 2, (247, 162, 17), -1)
     cv2.imwrite("../images/process/"+type+"/templateCircle/" + imgName + '-recognize.png', drawCircle)
-    print("locate_circle_centers:", locate_circle_centers)
     if len(template_circle_centers)<3 or len(locate_circle_centers)<1:
         continue
     lp, n1, n2, n3 = matchPoint(template_circle_centers, n0, locate_circle_centers)
@@ -1014,10 +1079,6 @@ for n0 in start_circle_centers:
             transform_matrix = MM
     angle = angle if angle > 0 else 360 + angle
     print("标识的角度为：", angle)
-<<<<<<< HEAD
-
-=======
->>>>>>> 971fde92cf0a67e266f1c1fb3524266357f52799
 
     ## 整数部分解码
     side_length = np.sqrt((n0[0]-n1[0])**2+(n0[1]-n1[1])**2)
@@ -1028,8 +1089,8 @@ for n0 in start_circle_centers:
     # 提取出所有的圆环带轮廓
     circular_thresh = extractCircularEdges(sobel_thresh, side_length)
     dec_value = getCodeVal(circular_thresh, dec_points)
-    # dec_value1 = decodedByGray(dec_points, lp, side_length, blur)
-    print("小数:", int(dec_value, 2), dec_value)
+    dec_value1 = decodedByGray(dec_points, lp, side_length, blur)
+    print("小数:", int(dec_value, 2), int(dec_value1, 2), dec_value, dec_value1)
     print('标记点的解码结果为:{}.{}'.format(int(int_str, 2), str(int(dec_value, 2)).zfill(3)))
 
 
@@ -1045,13 +1106,8 @@ for n0 in start_circle_centers:
     # move_y = round(97*0.545/83 * (average_x - 960), 4)
     # move_x = round(95*0.53/83 * (average_y - 1071), 4)
     # move_y = round(95*0.53/83 * (average_x - 1214), 4)
-<<<<<<< HEAD
-    move_x = round(95 * 0.54 / 104 * (lp[0]-977), 6)
-    move_y = round(95 * 0.54 / 104 * (954-lp[1]), 6)
-=======
     move_x = round(95 * 0.536 / 82 * (lp[1]-1067), 6)
     move_y = round(95 * 0.536 / 82 * (lp[0]-1214), 6)
->>>>>>> 971fde92cf0a67e266f1c1fb3524266357f52799
     print("平台X方向移动{}μm,Y方向移动{}μm".format(move_x, move_y))
     # sheet.cell(row=r, column=6, value=move_x)
     # sheet.cell(row=r, column=7, value=move_y)

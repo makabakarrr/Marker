@@ -7,6 +7,7 @@ import numpy as np
 # filePath1 = '../documents/0428_sub_edges_5.xlsx'
 # filePath2 = '../documents/0428_sub_edges_3.xlsx'
 filePath = '../documents/mass/0620_centers_average.xlsx'
+# filePath = '../documents/mass/marker_decode_angle.xlsx'
 # # 打开 XLSX 文件
 # wb1 = openpyxl.load_workbook(filePath1)
 # wb2 = openpyxl.load_workbook(filePath2)

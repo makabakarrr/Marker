@@ -849,225 +849,225 @@ def unSharpMask(img, sigma, amount, thresh):
 #     "marker_11-9", "marker_21-8", "marker_12-9", "marker_22-8"
 # ]
 # r = 1
-# filePath = "../documents/0627_location.xlsx"
-# wb = openpyxl.load_workbook(filePath)
-# sheet = wb['Sheet1']
-# r=43
-# img_name_list = ["marker_A-0", "marker_B-2", "marker_C-2", "marker_D-5", "marker_O"]
-# for imgName in img_name_list:
-#     print(imgName)
-#     r += 1
-imgName = "marker_20-clahe-usm"
+filePath = "../documents/0627_location.xlsx"
+wb = openpyxl.load_workbook(filePath)
+sheet = wb['Sheet1']
+r=56
+img_name_list = ["marker_A-0", "marker_B-2", "marker_C-2", "marker_D-5", "marker_O"]
+for imgName in img_name_list:
+    print(imgName)
+    r += 1
+# imgName = "marker_20-clahe-usm"
 # img = cv2.imread('../images/process/angle/imgAngle/'+imgName+'.bmp', 0)
-# img = cv2.imread('../images/process/angle/imgLocation/'+imgName+'.bmp', 0)
-img = cv2.imread('../images/process/0428/'+imgName+'.png', 0)
-height, width = img.shape[0], img.shape[1]
-# blur = cv2.medianBlur(img, 3)
-blur = cv2.GaussianBlur(img, (0, 0), 2.2)
-# clahe = cv2.createCLAHE(2, (16,16))
-# blur = clahe.apply(blurred)
-# cv2.imwrite("../images/process/angle/medianBlur/" + imgName + '-blur.png', blur1)
-# cv2.imwrite("../images/process/angle/gaussianBlur/" + imgName + '-blur.png', blur)
-# img = cv2.imread("../images/process/0428/" + imgName + ".png", 0)
-# height, width = img.shape[0], img.shape[1]
-# blur = img.copy()
-# cv2.imwrite("../images/process/angle/gaussianBlur/" + imgName + '-blur.png', blur)
-sobelx = cv2.Sobel(blur, cv2.CV_64F, 1, 0)
-sobely= cv2.Sobel(blur, cv2.CV_64F, 0, 1)
+    img = cv2.imread('../images/process/angle/imgLocation/'+imgName+'.bmp', 0)
+    # img = cv2.imread('../images/process/0428/'+imgName+'.png', 0)
+    height, width = img.shape[0], img.shape[1]
+    # blur = cv2.medianBlur(img, 3)
+    blur = cv2.GaussianBlur(img, (0, 0), 1.2)
+    # clahe = cv2.createCLAHE(2, (16,16))
+    # blur = clahe.apply(blurred)
+    # cv2.imwrite("../images/process/angle/medianBlur/" + imgName + '-blur.png', blur1)
+    # cv2.imwrite("../images/process/angle/gaussianBlur/" + imgName + '-blur.png', blur)
+    # img = cv2.imread("../images/process/0428/" + imgName + ".png", 0)
+    # height, width = img.shape[0], img.shape[1]
+    # blur = img.copy()
+    # cv2.imwrite("../images/process/angle/gaussianBlur/" + imgName + '-blur.png', blur)
+    sobelx = cv2.Sobel(blur, cv2.CV_64F, 1, 0)
+    sobely= cv2.Sobel(blur, cv2.CV_64F, 0, 1)
 
-mag, angle = cv2.cartToPolar(sobelx, sobely, angleInDegrees=True)
+    mag, angle = cv2.cartToPolar(sobelx, sobely, angleInDegrees=True)
 
-grad_mag = cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8UC1)
-# plt.hist(grad_mag.ravel(), 256)
-# plt.show()
-th, _ = cv2.threshold(grad_mag, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-# print("th:", th)
-tl = max(0, int(th * 0.3))
-print(th, tl)
-edges = cv2.Canny(blur, tl,th-10)
-cv2.imwrite("../images/process/summary/gaussianOstuCanny/"+imgName+"_edges.png", edges)
-_, sobel_thresh = cv2.threshold(grad_mag, 10,255, cv2.THRESH_BINARY)
-cv2.imwrite("../images/process/summary/sobelThresh/"+imgName+"_sobel_edges.png", sobel_thresh)
-sobel_angle = np.arctan(sobely, sobelx)
+    grad_mag = cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8UC1)
+    # plt.hist(grad_mag.ravel(), 256)
+    # plt.show()
+    th, _ = cv2.threshold(grad_mag, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    # print("th:", th)
+    tl = max(0, int(th * 0.3))
+    print(th, tl)
+    edges = cv2.Canny(blur, tl,th-10)
+    cv2.imwrite("../images/process/summary/gaussianOstuCanny/"+imgName+"_edges.png", edges)
+    _, sobel_thresh = cv2.threshold(grad_mag, 10,255, cv2.THRESH_BINARY)
+    cv2.imwrite("../images/process/summary/sobelThresh/"+imgName+"_sobel_edges.png", sobel_thresh)
+    sobel_angle = np.arctan(sobely, sobelx)
 
-rows, cols = np.where(edges==255)
-edges_points = [[x,y] for x,y in list(zip(cols, rows))]
-edge_canvas = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-for pp in edges_points:
-    x, y = pp
-    edge_canvas[y,x,:] = (0,0,255)
-cv2.imwrite("../images/process/summary/gaussianOstuCanny/"+imgName+"_edges2.png", edge_canvas)
-print("边缘点的个数为：", len(edges_points))
-# 去除分叉的边缘（可消除圆弧交叉的情况）
-no_branch = delBranch(edges, 60)
-cv2.imwrite("../images/process/summary/delBranch/" + imgName + '-no_branch.png', no_branch)
+    rows, cols = np.where(edges==255)
+    edges_points = [[x,y] for x,y in list(zip(cols, rows))]
+    edge_canvas = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+    for pp in edges_points:
+        x, y = pp
+        edge_canvas[y,x,:] = (0,0,255)
+    cv2.imwrite("../images/process/summary/gaussianOstuCanny/"+imgName+"_edges2.png", edge_canvas)
+    print("边缘点的个数为：", len(edges_points))
+    # 去除分叉的边缘（可消除圆弧交叉的情况）
+    no_branch = delBranch(edges, 60)
+    cv2.imwrite("../images/process/summary/delBranch/" + imgName + '-no_branch.png', no_branch)
 
-# 圆弧检测
-filter_cnts = np.zeros(edges.shape, dtype=np.uint8)
-contours, _ = cv2.findContours(no_branch, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
-circle_info, circle_edge_points = extractCircles(contours, no_branch, edges_points)
-# print(len(circle_edge_points))
-## 圆弧提取可视化
-showExtractArc(circle_edge_points, "extractArc")
-## 圆弧分组-----将属于同一个圆的圆弧分到同一组
-group_circles_info, group_circles_points = groupCircles(circle_info, circle_edge_points, 1.5, 1.5)
-# group_circle_info中的元素为属于同一个圆的[圆心坐标平均值，半径平均值，对应group_circle_points中的边缘索引， k之和]
-showExtractArc(group_circles_points, "groupArc")
-
-
-
-# 圆弧分类-----按位置分
-category_index = classifyArcByPosition(group_circles_info)
-showClassifyArcByPosition(category_index, group_circles_info, group_circles_points)
-# category_index列表，与group_circle_info长度相等，每一个元素代表group_circle_info相同索引的元素所属的类别
-all_circle_tree = classifyArcByRadius(group_circles_info, category_index)
-showClassifyArcByRadius(all_circle_tree, group_circles_points, "classifyByRadius")
-
-simplify_circle_tree = filterArcByMaxK(all_circle_tree)
-showFilterArc(simplify_circle_tree, group_circles_points, "simplifyArc")
+    # 圆弧检测
+    filter_cnts = np.zeros(edges.shape, dtype=np.uint8)
+    contours, _ = cv2.findContours(no_branch, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+    circle_info, circle_edge_points = extractCircles(contours, no_branch, edges_points)
+    # print(len(circle_edge_points))
+    ## 圆弧提取可视化
+    showExtractArc(circle_edge_points, "extractArc")
+    ## 圆弧分组-----将属于同一个圆的圆弧分到同一组
+    group_circles_info, group_circles_points = groupCircles(circle_info, circle_edge_points, 1.5, 1.5)
+    # group_circle_info中的元素为属于同一个圆的[圆心坐标平均值，半径平均值，对应group_circle_points中的边缘索引， k之和]
+    showExtractArc(group_circles_points, "groupArc")
 
 
 
-start_template_info, other_template_info,locate_circle_info, code_circle_info = classifyCircle(simplify_circle_tree)
-res_canvas = showClassifyCircle(start_template_info, other_template_info, locate_circle_info, code_circle_info, group_circles_points)
-cv2.imwrite("../images/process/summary/templateCircle/" + imgName + '-category.png', res_canvas)
+    # 圆弧分类-----按位置分
+    category_index = classifyArcByPosition(group_circles_info)
+    showClassifyArcByPosition(category_index, group_circles_info, group_circles_points)
+    # category_index列表，与group_circle_info长度相等，每一个元素代表group_circle_info相同索引的元素所属的类别
+    all_circle_tree = classifyArcByRadius(group_circles_info, category_index)
+    showClassifyArcByRadius(all_circle_tree, group_circles_points, "classifyByRadius")
+
+    simplify_circle_tree = filterArcByMaxK(all_circle_tree)
+    showFilterArc(simplify_circle_tree, group_circles_points, "simplifyArc")
 
 
-# 填补编码圆
-int_thresh = fillIntCircle(no_branch, code_circle_info)
 
-# time1 = time.time()
-# start_template_centers, start_template_sub_edges, start_template_edges = getCenterBySubEdges(start_template_info, group_circles_points)
-# other_template_centers, other_template_sub_edges, other_template_edges = getCenterBySubEdges(other_template_info, group_circles_points)
-# print("locate_circle_info:", locate_circle_info)
-# locate_centers, locate_sub_edges, locate_edges = getCenterBySubEdges(locate_circle_info, group_circles_points)
-# time2 = time.time()
-# print("耗时：", time2-time1)
-
-# print(start_template_sub_edges)
-# showSubEdges(start_template_edges, start_template_sub_edges)
-# showSubEdges(other_template_edges, other_template_sub_edges)
-# showSubEdges(locate_edges, locate_sub_edges)
-
-# 使用均值求出模板点、定位圆的中心坐标点---粗定位
-start_circle_centers = calCentersByAverage(start_template_info)
-template_circle_centers = calCentersByAverage(other_template_info)
-locate_circle_centers = calCentersByAverage(locate_circle_info)
-# start_circle_centers = calCentersByAverage(start_template_centers)
-# template_circle_centers = calCentersByAverage(other_template_centers)
-# locate_circle_centers = calCentersByAverage(locate_centers)
-# print(template_circle_centers)
-# print("locate_circle_centers", locate_circle_centers)
-# 识别N1, N2, N3
-## 设计坐标
-# 根据设计图的特征，假设模板点坐标如下：
-src_n0 = [50, 50]
-src_n1 = [250, 50]
-src_n2 = [50, 250]
-src_n3 = [250, 250]
-src_lp = [150, 150]
-source_points = np.array([src_n0, src_n1, src_n2, src_n3], dtype=np.float32)
-# 整数编码圆中心的设计坐标
-code_points = generateCodePoints(src_n0, 200)  # 根据设计图的比例生成编码点的中心坐标列表
-# band_angles = calculateBandAnglesByTemplatePoint(src_lp, src_n0, src_n1, src_n2, src_n3)    # 计算设计图上每个编码带的起始角度、终止角度
-# 小数编码块中心的设计坐标
-band_angles = calculateBandAngleByAverage(10)
-bandCenters = getBandCenter(band_angles, src_lp, 200)  # 计算每个编码带中间位置的设计坐标
-# 从source_points中任选3点的组合方式
-source_combinations = np.array(list(itertools.combinations(source_points, 3)))
+    start_template_info, other_template_info,locate_circle_info, code_circle_info = classifyCircle(simplify_circle_tree)
+    res_canvas = showClassifyCircle(start_template_info, other_template_info, locate_circle_info, code_circle_info, group_circles_points)
+    cv2.imwrite("../images/process/summary/templateCircle/" + imgName + '-category.png', res_canvas)
 
 
-drawCircle = cv2.cvtColor(filter_cnts, cv2.COLOR_GRAY2BGR)
+    # 填补编码圆
+    int_thresh = fillIntCircle(no_branch, code_circle_info)
 
-for n0 in start_circle_centers:
-    cv2.putText(drawCircle, 'n0', (int(n0[0] + 50), int(n0[1] - 20)), cv2.FONT_HERSHEY_SIMPLEX, 1, (247, 162, 17), 2)
-    cv2.circle(drawCircle, (int(n0[0]), int(n0[1])), 2, (247, 162, 17), -1)
-    cv2.imwrite("../images/process/summary/templateCircle/" + imgName + '-recognize.png', drawCircle)
-    if len(template_circle_centers)<2 or len(locate_circle_centers)<1:
-        continue
-    lp, n1, n2, n3 = matchPoint(template_circle_centers, n0, locate_circle_centers)
+    # time1 = time.time()
+    # start_template_centers, start_template_sub_edges, start_template_edges = getCenterBySubEdges(start_template_info, group_circles_points)
+    # other_template_centers, other_template_sub_edges, other_template_edges = getCenterBySubEdges(other_template_info, group_circles_points)
+    # print("locate_circle_info:", locate_circle_info)
+    # locate_centers, locate_sub_edges, locate_edges = getCenterBySubEdges(locate_circle_info, group_circles_points)
+    # time2 = time.time()
+    # print("耗时：", time2-time1)
 
-    ## 可视化
-    cv2.putText(drawCircle, 'n1', (int(n1[0]+50), int(n1[1]-20)), cv2.FONT_HERSHEY_SIMPLEX, 1, (125, 186, 94), 2)
-    cv2.circle(drawCircle, (int(n1[0]), int(n1[1])), 2, (125, 186, 94), -1)
-    cv2.putText(drawCircle, 'n2', (int(n2[0]+50), int(n2[1]-20)), cv2.FONT_HERSHEY_SIMPLEX, 1, (17,17, 255), 2)
-    cv2.circle(drawCircle, (int(n2[0]), int(n2[1])), 2, (17,17, 255), -1)
-    cv2.putText(drawCircle, 'n3', (int(n3[0]+50), int(n3[1]-20)), cv2.FONT_HERSHEY_SIMPLEX, 1, (14, 169, 250), 2)
-    cv2.circle(drawCircle, (int(n3[0]), int(n3[1])), 2, (14, 169, 250), -1)
-    cv2.imwrite("../images/process/summary/templateCircle/" + imgName + '-recognize.png', drawCircle)
+    # print(start_template_sub_edges)
+    # showSubEdges(start_template_edges, start_template_sub_edges)
+    # showSubEdges(other_template_edges, other_template_sub_edges)
+    # showSubEdges(locate_edges, locate_sub_edges)
 
-    # 从n0, n1, n2, n3中找到与combinations组合中与src_x对应的点
-    dist_points = np.array([n0, n1, n2, n3], dtype=np.float32)
-    dist_combinations = getDistCombinations(source_combinations, source_points, dist_points)
-
-    angle = 0.0
-    transform_matrix = np.zeros((2,3), np.float32)
-    max_dist = 10.0
-
-    for i in range(len(source_combinations)):
-        MM = calculateAffineMatrix(source_combinations[i], dist_combinations[i])
-        s_remain_p, d_remain_p = getRemainPoint(source_combinations[i], source_points, dist_points)
-        cal_dist_x = round(MM[0][0] * s_remain_p[0] + MM[0][1] * s_remain_p[1] + MM[0][2], 4)
-        cal_dist_y = round(MM[1][0] * s_remain_p[0] + MM[1][1] * s_remain_p[1] + MM[1][2], 4)
-        dist_err = np.sqrt((cal_dist_x-d_remain_p[0])**2 + (cal_dist_y-d_remain_p[1])**2)
-        print(dist_err, 135 - np.arctan2(MM[1, 0], MM[0, 0]) * 180 / np.pi)
-        if dist_err<max_dist:
-            max_dist = dist_err
-            angle = 135 - np.arctan2(MM[1, 0], MM[0, 0]) * 180 / np.pi
-            print("min:", dist_err, angle)
-            transform_matrix = MM
-    angle = angle if angle>0 else 360+angle
-    print("标识的角度为：", angle)
-    ## 整数部分解码
-    side_length = np.sqrt((n0[0]-n1[0])**2+(n0[1]-n1[1])**2)
-    int_points = cvtCodePoints1(code_points, transform_matrix)
-    int_str = getCodeVal(int_thresh, int_points)
-    ## 小数部分解码
-    dec_points = cvtCodePoints1(bandCenters, transform_matrix)
-    # 提取出所有的圆环带轮廓
-    circular_thresh = extractCircularEdges(sobel_thresh, side_length)
-    dec_value = getCodeVal(circular_thresh, dec_points)
-    # dec_value1 = decodedByGray(dec_points, lp, side_length, blur)
-    # print("小数:", int(dec_value, 2), int(dec_value1, 2), dec_value, dec_value1)
-    print('标记点的解码结果为:{}.{}'.format(int(int_str, 2), str(int(dec_value, 2)).zfill(3)))
+    # 使用均值求出模板点、定位圆的中心坐标点---粗定位
+    start_circle_centers = calCentersByAverage(start_template_info)
+    template_circle_centers = calCentersByAverage(other_template_info)
+    locate_circle_centers = calCentersByAverage(locate_circle_info)
+    # start_circle_centers = calCentersByAverage(start_template_centers)
+    # template_circle_centers = calCentersByAverage(other_template_centers)
+    # locate_circle_centers = calCentersByAverage(locate_centers)
+    # print(template_circle_centers)
+    # print("locate_circle_centers", locate_circle_centers)
+    # 识别N1, N2, N3
+    ## 设计坐标
+    # 根据设计图的特征，假设模板点坐标如下：
+    src_n0 = [50, 50]
+    src_n1 = [250, 50]
+    src_n2 = [50, 250]
+    src_n3 = [250, 250]
+    src_lp = [150, 150]
+    source_points = np.array([src_n0, src_n1, src_n2, src_n3], dtype=np.float32)
+    # 整数编码圆中心的设计坐标
+    code_points = generateCodePoints(src_n0, 200)  # 根据设计图的比例生成编码点的中心坐标列表
+    # band_angles = calculateBandAnglesByTemplatePoint(src_lp, src_n0, src_n1, src_n2, src_n3)    # 计算设计图上每个编码带的起始角度、终止角度
+    # 小数编码块中心的设计坐标
+    band_angles = calculateBandAngleByAverage(10)
+    bandCenters = getBandCenter(band_angles, src_lp, 200)  # 计算每个编码带中间位置的设计坐标
+    # 从source_points中任选3点的组合方式
+    source_combinations = np.array(list(itertools.combinations(source_points, 3)))
 
 
-    # 计算中心坐标
-    print("定位圆中心：", lp)
-    [x_o2, y_o2] = calculateCrossPoint([n0, n3], [n1, n2])
-    average_x = (x_o2 + lp[0]) / 2
-    average_y = (y_o2 + lp[1]) / 2
-    print('标记点的中心坐标为:{}'.format([average_x, average_y]))
+    drawCircle = cv2.cvtColor(filter_cnts, cv2.COLOR_GRAY2BGR)
 
-    ## 计算对准相机中心平台需要移动的距离
-    # move_x = round(97*0.545/83 * (average_y - 1057), 4)
-    # move_y = round(97*0.545/83 * (average_x - 960), 4)
-    # move_x = round(95*0.53/83 * (average_y - 1071), 4)
-    # move_y = round(95*0.53/83 * (average_x - 1214), 4)
-    move_x = round(95 * 0.54 / 82 * (lp[1]-1068.5)*0.001, 6)
-    move_y = round(95 * 0.54 / 82 * (lp[0]-1214)*0.001, 6)
-    print("平台X方向移动{}μm,Y方向移动{}μm".format(move_x, move_y))
-    L = int(int_str, 2) + int(dec_value, 2)*0.001
-    next_x = -L * math.sin(math.radians(angle))
-    next_y = L * math.cos(math.radians(angle))
-    print("找到下一个标记点：平台X方向移动{}μm，Y方向移动{}μm".format(next_x, next_y))
-    # sheet.cell(row=r, column=10, value=lp[0])
-    # sheet.cell(row=r, column=11, value=lp[1])
-    # sheet.cell(row=r, column=6, value=move_x)
-    # sheet.cell(row=r, column=7, value=move_y)
-    # sheet.cell(row=r, column=6, value=move_x)
-    # sheet.cell(row=r, column=7, value=move_y)
-    # original_x = sheet.cell(row=r, column=2).value
-    # original_y = sheet.cell(row=r, column=3).value
-    # real_x = original_x + move_x
-    # real_y = original_y + move_y
-    # sheet.cell(row=r, column=10, value=real_x)
-    # sheet.cell(row=r, column=11, value=real_y)
-    # sheet.cell(row=r, column=17, value=135 -angle)
-    # sheet.cell(row=r, column=18, value=135 -angle2)
-    # sheet.cell(row=r, column=19, value=135 -angle1)
+    for n0 in start_circle_centers:
+        cv2.putText(drawCircle, 'n0', (int(n0[0] + 50), int(n0[1] - 20)), cv2.FONT_HERSHEY_SIMPLEX, 1, (247, 162, 17), 2)
+        cv2.circle(drawCircle, (int(n0[0]), int(n0[1])), 2, (247, 162, 17), -1)
+        cv2.imwrite("../images/process/summary/templateCircle/" + imgName + '-recognize.png', drawCircle)
+        if len(template_circle_centers)<3 or len(locate_circle_centers)<1:
+            continue
+        lp, n1, n2, n3 = matchPoint(template_circle_centers, n0, locate_circle_centers)
+
+        ## 可视化
+        cv2.putText(drawCircle, 'n1', (int(n1[0]+50), int(n1[1]-20)), cv2.FONT_HERSHEY_SIMPLEX, 1, (125, 186, 94), 2)
+        cv2.circle(drawCircle, (int(n1[0]), int(n1[1])), 2, (125, 186, 94), -1)
+        cv2.putText(drawCircle, 'n2', (int(n2[0]+50), int(n2[1]-20)), cv2.FONT_HERSHEY_SIMPLEX, 1, (17,17, 255), 2)
+        cv2.circle(drawCircle, (int(n2[0]), int(n2[1])), 2, (17,17, 255), -1)
+        cv2.putText(drawCircle, 'n3', (int(n3[0]+50), int(n3[1]-20)), cv2.FONT_HERSHEY_SIMPLEX, 1, (14, 169, 250), 2)
+        cv2.circle(drawCircle, (int(n3[0]), int(n3[1])), 2, (14, 169, 250), -1)
+        cv2.imwrite("../images/process/summary/templateCircle/" + imgName + '-recognize.png', drawCircle)
+
+        # 从n0, n1, n2, n3中找到与combinations组合中与src_x对应的点
+        dist_points = np.array([n0, n1, n2, n3], dtype=np.float32)
+        dist_combinations = getDistCombinations(source_combinations, source_points, dist_points)
+
+        angle = 0.0
+        transform_matrix = np.zeros((2,3), np.float32)
+        max_dist = 10.0
+
+        for i in range(len(source_combinations)):
+            MM = calculateAffineMatrix(source_combinations[i], dist_combinations[i])
+            s_remain_p, d_remain_p = getRemainPoint(source_combinations[i], source_points, dist_points)
+            cal_dist_x = round(MM[0][0] * s_remain_p[0] + MM[0][1] * s_remain_p[1] + MM[0][2], 4)
+            cal_dist_y = round(MM[1][0] * s_remain_p[0] + MM[1][1] * s_remain_p[1] + MM[1][2], 4)
+            dist_err = np.sqrt((cal_dist_x-d_remain_p[0])**2 + (cal_dist_y-d_remain_p[1])**2)
+            print(dist_err, 135 - np.arctan2(MM[1, 0], MM[0, 0]) * 180 / np.pi)
+            if dist_err<max_dist:
+                max_dist = dist_err
+                angle = 135 - np.arctan2(MM[1, 0], MM[0, 0]) * 180 / np.pi
+                print("min:", dist_err, angle)
+                transform_matrix = MM
+        angle = angle if angle>0 else 360+angle
+        print("标识的角度为：", angle)
+        ## 整数部分解码
+        side_length = np.sqrt((n0[0]-n1[0])**2+(n0[1]-n1[1])**2)
+        int_points = cvtCodePoints1(code_points, transform_matrix)
+        int_str = getCodeVal(int_thresh, int_points)
+        ## 小数部分解码
+        dec_points = cvtCodePoints1(bandCenters, transform_matrix)
+        # 提取出所有的圆环带轮廓
+        circular_thresh = extractCircularEdges(sobel_thresh, side_length)
+        dec_value = getCodeVal(circular_thresh, dec_points)
+        # dec_value1 = decodedByGray(dec_points, lp, side_length, blur)
+        # print("小数:", int(dec_value, 2), int(dec_value1, 2), dec_value, dec_value1)
+        print('标记点的解码结果为:{}.{}'.format(int(int_str, 2), str(int(dec_value, 2)).zfill(3)))
 
 
-# wb.save(filePath)
+        # 计算中心坐标
+        print("定位圆中心：", lp)
+        [x_o2, y_o2] = calculateCrossPoint([n0, n3], [n1, n2])
+        average_x = (x_o2 + lp[0]) / 2
+        average_y = (y_o2 + lp[1]) / 2
+        print('标记点的中心坐标为:{}'.format([average_x, average_y]))
+
+        ## 计算对准相机中心平台需要移动的距离
+        # move_x = round(97*0.545/83 * (average_y - 1057), 4)
+        # move_y = round(97*0.545/83 * (average_x - 960), 4)
+        # move_x = round(95*0.53/83 * (average_y - 1071), 4)
+        # move_y = round(95*0.53/83 * (average_x - 1214), 4)
+        move_x = round(95 * 0.54 / 82 * (lp[1]-1068.5), 6)
+        move_y = round(95 * 0.54 / 82 * (lp[0]-1214), 6)
+        print("平台X方向移动{}μm,Y方向移动{}μm".format(move_x, move_y))
+        L = int(int_str, 2) + int(dec_value, 2)*0.001
+        next_x = -L * math.sin(math.radians(angle))
+        next_y = L * math.cos(math.radians(angle))
+        print("找到下一个标记点：平台X方向移动{}μm，Y方向移动{}μm".format(next_x, next_y))
+        # sheet.cell(row=r, column=10, value=lp[0])
+        # sheet.cell(row=r, column=11, value=lp[1])
+        sheet.cell(row=r, column=6, value=move_x)
+        sheet.cell(row=r, column=7, value=move_y)
+        # sheet.cell(row=r, column=6, value=move_x)
+        # sheet.cell(row=r, column=7, value=move_y)
+        # original_x = sheet.cell(row=r, column=2).value
+        # original_y = sheet.cell(row=r, column=3).value
+        # real_x = original_x + move_x
+        # real_y = original_y + move_y
+        # sheet.cell(row=r, column=10, value=real_x)
+        # sheet.cell(row=r, column=11, value=real_y)
+        # sheet.cell(row=r, column=17, value=135 -angle)
+        # sheet.cell(row=r, column=18, value=135 -angle2)
+        # sheet.cell(row=r, column=19, value=135 -angle1)
+
+
+    wb.save(filePath)
 
 
