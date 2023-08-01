@@ -352,8 +352,8 @@ def cvtCodePoints1(codePoints, matrix):
     for point in codePoints:
         u = point[0]
         v = point[1]
-        x = round(matrix[0][0] * u + matrix[0][1] * v + matrix[0][2], 4)
-        y = round(matrix[1][0] * u + matrix[1][1] * v + matrix[1][2], 4)
+        x = round(matrix[0][0] * u + matrix[0][1] * v + matrix[0][2], 6)
+        y = round(matrix[1][0] * u + matrix[1][1] * v + matrix[1][2], 6)
         res.append([x, y])
     return res
 

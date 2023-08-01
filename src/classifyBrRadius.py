@@ -105,7 +105,7 @@ def extractCircles(cnts, no_branch, edges_points):
         if len(cnt) > 10:
             (cx, cy), (a, b), angle = cv2.fitEllipse(cnt)
             radius = max(a, b) / 2
-            if min(a,b)<20 or max(a, b)>200:
+            if min(a,b)<20 or max(a, b)>100:
                 continue
             # 求内点数量
             perimeter = 2 * np.pi * radius
@@ -125,7 +125,7 @@ def extractCircles(cnts, no_branch, edges_points):
             k = nums / perimeter
             # cv2.circle(circle_canvas, (int(cx), int(cy)), int(radius), (0, 0, 255), 1)
             # cv2.putText(circle_canvas, str(radius), (int(cx)+int(radius), int(cy)), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,255,0), 1)
-            if k > 0.3:  # 圆形轮廓
+            if k > 0.2:  # 圆形轮廓
                 circle_info.append([cx, cy, radius, len(circle_edge_points), k])    # [中心坐标x, 中心坐标y, 对应的边缘点索引号, k值]
                 cv2.circle(circle_canvas, (int(cx), int(cy)), int(radius), (0, 0, 255), 1)
                 for p in test_points:
@@ -621,14 +621,14 @@ def classifyCircle(circle_tree):
             #     other_template_info.append(position)
             other_template_info.append(position)
         elif length == 2:
-            r1, r2 = np.sort(r_list)
-            print(r1, r2, np.sort(r_list))
-            ratio1 = r2 / r1
-            print(ratio1)
-            if abs(ratio1-1.7)<0.1:
-                start_template_info.append(position)
-            else:
-                other_circle_info.append(position[0])
+            # r1, r2 = np.sort(r_list)
+            # print(r1, r2, np.sort(r_list))
+            # ratio1 = r2 / r1
+            # print(ratio1)
+            # if abs(ratio1-1.5)<0.1:
+            start_template_info.append(position)
+            # else:
+            #     other_circle_info.append(position[0])
         else:
             other_circle_info.append(position[0])
 
@@ -822,17 +822,17 @@ def unSharpMask(img, sigma, amount, thresh):
 #     r += 1
 # for m in range(0, 100):
 type = "tcg"
-imgName = "marker_7-1000-30"
+imgName = "marker_F"
 
 # img = cv2.imread('../images/process/angle/imgAngle/'+imgName+'.bmp', 0)
 # img = cv2.imread('../images/process/angle/imgLocation/'+imgName+'.bmp', 0)
-img = cv2.imread('../images/process/'+type+'/preprocess/'+imgName+'.png', 0)
+img = cv2.imread('../images/process/'+type+'/0713/'+imgName+'.bmp', 0)
 # img = cv2.imread('../images/process/0428/'+imgName+'.png', 0)
 height, width = img.shape[0], img.shape[1]
 # blur = cv2.medianBlur(img, 3)
-# blur = cv2.GaussianBlur(img, (0, 0), 1.5)
+blur = cv2.GaussianBlur(img, (0, 0), 2.3)
 # blur = cv2.bilateralFilter(img, 5, 60, 80)
-blur = cv2.medianBlur(img, 7)
+# blur = cv2.medianBlur(img, 7)
 cv2.imwrite("../images/process/"+type+"/testPre/"+imgName+"_blur.png", blur)
 
 # clahe = cv2.createCLAHE(4, (16,16))
@@ -862,7 +862,7 @@ th, _ = cv2.threshold(grad_mag, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 # print("th:", th)
 tl = max(0, int(th * 0.3))
 print(th, tl)
-edges = cv2.Canny(blur, tl,th-10)
+edges = cv2.Canny(blur, tl,th-20)
 cv2.imwrite("../images/process/"+type+"/gaussianOstuCanny/"+imgName+"_edges.png", edges)
 _, sobel_thresh = cv2.threshold(grad_mag, 10,255, cv2.THRESH_BINARY)
 cv2.imwrite("../images/process/"+type+"/sobelThresh/"+imgName+"_sobel_edges.png", sobel_thresh)
@@ -912,13 +912,13 @@ print(len(start_template_info), len(other_template_info), len(locate_circle_info
 # 填补编码圆
 int_thresh = fillIntCircle(no_branch, code_circle_info)
 
-# time1 = time.time()
-# start_template_centers, start_template_sub_edges, start_template_edges = getCenterBySubEdges(start_template_info, group_circles_points)
-# other_template_centers, other_template_sub_edges, other_template_edges = getCenterBySubEdges(other_template_info, group_circles_points)
-# print("locate_circle_info:", locate_circle_info)
-# locate_centers, locate_sub_edges, locate_edges = getCenterBySubEdges(locate_circle_info, group_circles_points)
-# time2 = time.time()
-# print("耗时：", time2-time1)
+time1 = time.time()
+start_template_centers, start_template_sub_edges, start_template_edges = getCenterBySubEdges(start_template_info, group_circles_points)
+other_template_centers, other_template_sub_edges, other_template_edges = getCenterBySubEdges(other_template_info, group_circles_points)
+print("locate_circle_info:", locate_circle_info)
+locate_centers, locate_sub_edges, locate_edges = getCenterBySubEdges(locate_circle_info, group_circles_points)
+time2 = time.time()
+print("耗时：", time2-time1)
 
 # print(start_template_sub_edges)
 # showSubEdges(start_template_edges, start_template_sub_edges)
@@ -926,12 +926,12 @@ int_thresh = fillIntCircle(no_branch, code_circle_info)
 # showSubEdges(locate_edges, locate_sub_edges)
 
 # 使用均值求出模板点、定位圆的中心坐标点---粗定位
-start_circle_centers = calCentersByAverage(start_template_info)
-template_circle_centers = calCentersByAverage(other_template_info)
-locate_circle_centers = calCentersByAverage(locate_circle_info)
-# start_circle_centers = calCentersByAverage(start_template_centers)
-# template_circle_centers = calCentersByAverage(other_template_centers)
-# locate_circle_centers = calCentersByAverage(locate_centers)
+# start_circle_centers = calCentersByAverage(start_template_info)
+# template_circle_centers = calCentersByAverage(other_template_info)
+# locate_circle_centers = calCentersByAverage(locate_circle_info)
+start_circle_centers = calCentersByAverage(start_template_centers)
+template_circle_centers = calCentersByAverage(other_template_centers)
+locate_circle_centers = calCentersByAverage(locate_centers)
 # print(template_circle_centers)
 # print("locate_circle_centers", locate_circle_centers)
 # 识别N1, N2, N3
@@ -978,22 +978,23 @@ for n0 in start_circle_centers:
     dist_points = np.array([n0, n1, n2, n3], dtype=np.float32)
     dist_combinations = getDistCombinations(source_combinations, source_points, dist_points)
     angle = 0.0
-    M = np.zeros((2,3), np.float32)
+    transform_matrix = np.zeros((2, 3), np.float32)
+    max_dist = 10.0
 
     for i in range(len(source_combinations)):
         MM = calculateAffineMatrix(source_combinations[i], dist_combinations[i])
-        M = np.add(M, MM)
-
-        angle += np.arctan2(MM[1, 0], MM[0, 0]) * 180 / np.pi
-
-    transform_matrix = M / len(source_combinations)
-    angle = angle / len(source_combinations)
-    print("均值：", 135 - angle)
-    M1 = calculateAffineMatrix(source_combinations[0], dist_combinations[0])
-    angle1 = np.arctan2(M1[1, 0], M1[0, 0]) * 180 / np.pi
-    print("使用1组数据", 135 - angle1)
-    angle2 = getAngle(lp, n0)
-    print("lp-n0:", angle2)
+        s_remain_p, d_remain_p = getRemainPoint(source_combinations[i], source_points, dist_points)
+        cal_dist_x = round(MM[0][0] * s_remain_p[0] + MM[0][1] * s_remain_p[1] + MM[0][2], 4)
+        cal_dist_y = round(MM[1][0] * s_remain_p[0] + MM[1][1] * s_remain_p[1] + MM[1][2], 4)
+        dist_err = np.sqrt((cal_dist_x - d_remain_p[0]) ** 2 + (cal_dist_y - d_remain_p[1]) ** 2)
+        print(dist_err, 135 - np.arctan2(MM[1, 0], MM[0, 0]) * 180 / np.pi)
+        if dist_err < max_dist:
+            max_dist = dist_err
+            angle = 135 - np.arctan2(MM[1, 0], MM[0, 0]) * 180 / np.pi
+            print("min:", dist_err, angle)
+            transform_matrix = MM
+    angle = angle if angle > 0 else 360 + angle
+    print("标识的角度为：", angle)
 
 
     ## 整数部分解码
@@ -1005,8 +1006,8 @@ for n0 in start_circle_centers:
     # 提取出所有的圆环带轮廓
     circular_thresh = extractCircularEdges(sobel_thresh, side_length)
     dec_value = getCodeVal(circular_thresh, dec_points)
-    dec_value1 = decodedByGray(dec_points, lp, side_length, blur)
-    print("小数:", int(dec_value, 2), int(dec_value1, 2), dec_value, dec_value1)
+    # dec_value1 = decodedByGray(dec_points, lp, side_length, blur)
+    print("小数:", int(dec_value, 2), dec_value)
     print('标记点的解码结果为:{}.{}'.format(int(int_str, 2), str(int(dec_value, 2)).zfill(3)))
 
 
@@ -1022,8 +1023,8 @@ for n0 in start_circle_centers:
     # move_y = round(97*0.545/83 * (average_x - 960), 4)
     # move_x = round(95*0.53/83 * (average_y - 1071), 4)
     # move_y = round(95*0.53/83 * (average_x - 1214), 4)
-    move_x = round(95 * 0.54 / 82 * (lp[1]-1068.5)*0.001, 6)
-    move_y = round(95 * 0.54 / 82 * (lp[0]-1214)*0.001, 6)
+    move_x = round(95 * 0.54 / 104 * (lp[0]-977), 6)
+    move_y = round(95 * 0.54 / 104 * (954-lp[1]), 6)
     print("平台X方向移动{}μm,Y方向移动{}μm".format(move_x, move_y))
     # L = int(int_str, 2) + int(dec_value, 2)*0.001
     # next_x = -L * math.sin(math.radians(angle))
